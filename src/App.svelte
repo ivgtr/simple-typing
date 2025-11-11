@@ -1,64 +1,32 @@
 <script>
-  let targetText = "これはシンプルなタイピングゲームです。この文章を入力してください。";
-  let userInput = "";
-  let isStarted = false;
-  let isFinished = false;
-  let startTime = null;
-  let endTime = null;
-  let elapsedTime = 0;
-  let accuracy = 0;
-  let wpm = 0;
-  let cpm = 0;
+  import { GameSession, getScoreRank } from './lib/game.js';
 
-  function startTyping() {
-    isStarted = true;
-    startTime = Date.now();
+  // ゲームセッションのインスタンスを作成
+  let game = new GameSession();
+
+  // リアクティブな状態
+  $: state = game.getState();
+  $: targetText = state.question.text;
+  $: userInput = state.userInput;
+  $: isFinished = state.isFinished;
+  $: result = state.result;
+  $: rank = result ? getScoreRank(result.score) : '';
+
+  /**
+   * 入力変更時のハンドラ
+   */
+  function handleInput(event) {
+    game.updateInput(event.target.value);
+    // 強制的に再レンダリングを促す
+    game = game;
   }
 
-  function handleInput() {
-    if (!isStarted && userInput.length > 0) {
-      startTyping();
-    }
-
-    if (userInput.length >= targetText.length) {
-      finishTyping();
-    }
-  }
-
-  function finishTyping() {
-    if (isFinished) return;
-
-    isFinished = true;
-    endTime = Date.now();
-    elapsedTime = (endTime - startTime) / 1000; // 秒単位
-
-    // 正確性の計算
-    let correctChars = 0;
-    for (let i = 0; i < targetText.length; i++) {
-      if (userInput[i] === targetText[i]) {
-        correctChars++;
-      }
-    }
-    accuracy = (correctChars / targetText.length) * 100;
-
-    // WPM (Words Per Minute) の計算 - 日本語の場合は文字数ベース
-    const minutes = elapsedTime / 60;
-    wpm = Math.round((userInput.length / 5) / minutes);
-
-    // CPM (Characters Per Minute) の計算
-    cpm = Math.round(userInput.length / minutes);
-  }
-
+  /**
+   * リセット処理
+   */
   function reset() {
-    userInput = "";
-    isStarted = false;
-    isFinished = false;
-    startTime = null;
-    endTime = null;
-    elapsedTime = 0;
-    accuracy = 0;
-    wpm = 0;
-    cpm = 0;
+    game.reset();
+    game = game; // 強制的に再レンダリング
   }
 </script>
 
@@ -86,7 +54,7 @@
         </label>
         <textarea
           id="input"
-          bind:value={userInput}
+          value={userInput}
           on:input={handleInput}
           disabled={isFinished}
           class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-lg"
@@ -96,25 +64,34 @@
       </div>
 
       <!-- 結果表示 -->
-      {#if isFinished}
+      {#if isFinished && result}
         <div class="mb-6 p-6 bg-blue-50 rounded-lg border border-blue-200">
-          <h2 class="text-xl font-bold text-blue-900 mb-4">結果</h2>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-blue-900">結果</h2>
+            <div class="text-3xl font-bold text-blue-600">
+              ランク: {rank}
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="text-center">
               <div class="text-sm text-gray-600">時間</div>
-              <div class="text-2xl font-bold text-blue-900">{elapsedTime.toFixed(2)}秒</div>
+              <div class="text-2xl font-bold text-blue-900">{result.elapsedTime}秒</div>
             </div>
             <div class="text-center">
               <div class="text-sm text-gray-600">正確性</div>
-              <div class="text-2xl font-bold text-blue-900">{accuracy.toFixed(1)}%</div>
+              <div class="text-2xl font-bold text-blue-900">{result.accuracy}%</div>
             </div>
             <div class="text-center">
               <div class="text-sm text-gray-600">WPM</div>
-              <div class="text-2xl font-bold text-blue-900">{wpm}</div>
+              <div class="text-2xl font-bold text-blue-900">{result.wpm}</div>
             </div>
             <div class="text-center">
               <div class="text-sm text-gray-600">CPM</div>
-              <div class="text-2xl font-bold text-blue-900">{cpm}</div>
+              <div class="text-2xl font-bold text-blue-900">{result.cpm}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-sm text-gray-600">スコア</div>
+              <div class="text-2xl font-bold text-blue-900">{result.score}</div>
             </div>
           </div>
         </div>
@@ -138,6 +115,7 @@
           <li>• キーボード入力でも音声入力でもOKです</li>
           <li>• 入力途中の正誤判定はありません</li>
           <li>• 文章の長さ以上を入力すると自動的に結果が表示されます</li>
+          <li>• スコアはS/A/B/C/Dの5段階で評価されます</li>
         </ul>
       </div>
     </div>
