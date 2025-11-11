@@ -1,0 +1,33 @@
+{
+  "name": "simple-typing",
+  "version": "1.0.0",
+  "description": "入力の経過は確認しないシンプルなタイピングゲームです。 音声入力とキーボード入力の速度をなるべく同条件で比較するのをモチベーションとしています。",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:gh": "vite build --mode github",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:26636/git/ivgtr/simple-typing"
+  },
+  "keywords": [
+    "typing",
+    "game",
+    "svelte",
+    "voice-input"
+  ],
+  "author": "ivgtr",
+  "license": "MIT",
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "@tailwindcss/postcss": "^4.1.17",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "svelte": "^5.43.6",
+    "tailwindcss": "^4.1.17",
+    "vite": "^7.2.2"
+  }
+}
