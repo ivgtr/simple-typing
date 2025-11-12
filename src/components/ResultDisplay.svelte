@@ -1,6 +1,7 @@
 <script>
   import { calculateTextDiff, getEvaluationComment, getIconType, formatTime } from '../lib/result-utils.js';
   import { HistoryManager } from '../lib/history.js';
+  import ComparisonModal from './ComparisonModal.svelte';
 
   /**
    * 結果表示コンポーネント（複数問題対応）
@@ -19,6 +20,7 @@
   let inputMethod = 'keyboard'; // デフォルトはキーボード
   let saveStatus = ''; // '', 'saving', 'success', 'error'
   let saveMessage = '';
+  let isComparisonModalOpen = false;
 
   /**
    * 結果を保存
@@ -54,6 +56,13 @@
         saveMessage = '';
       }, 3000);
     }
+  }
+
+  /**
+   * 比較モーダルを開く
+   */
+  function openComparisonModal() {
+    isComparisonModalOpen = true;
   }
 </script>
 
@@ -151,6 +160,19 @@
           {/if}
         </div>
       </div>
+
+      <!-- 比較ボタン -->
+      <div class="mt-4">
+        <button
+          on:click={openComparisonModal}
+          class="w-full px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          過去の記録と比較
+        </button>
+      </div>
     </div>
 
     <!-- 各問題の詳細 -->
@@ -244,4 +266,15 @@
       </div>
     {/if}
   </div>
+
+  <!-- 比較モーダル -->
+  <ComparisonModal
+    bind:isOpen={isComparisonModalOpen}
+    currentResult={result}
+    currentRank={rankEvaluation}
+    {inputMethod}
+    {mode}
+    {modeValue}
+    {difficulty}
+  />
 {/if}

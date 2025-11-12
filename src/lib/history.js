@@ -285,4 +285,37 @@ export class HistoryManager {
 
     return [...history].sort(sortFn)[0];
   }
+
+  /**
+   * 比較用の記録リストを取得
+   * @param {string} inputMethod - 入力方法でフィルタ
+   * @param {string} mode - モードでフィルタ (optional)
+   * @param {string} difficulty - 難易度でフィルタ (optional)
+   * @returns {Array<HistoryRecord>} フィルタされた履歴
+   */
+  static getRecordsForComparison(inputMethod = 'all', mode = null, difficulty = null) {
+    let history = this.filterByInputMethod(inputMethod);
+
+    // モードでフィルタ
+    if (mode) {
+      history = history.filter(record => record.mode === mode);
+    }
+
+    // 難易度でフィルタ
+    if (difficulty && difficulty !== 'all') {
+      history = history.filter(record => record.difficulty === difficulty);
+    }
+
+    return history;
+  }
+
+  /**
+   * IDで特定の記録を取得
+   * @param {string} id - 記録のID
+   * @returns {HistoryRecord|null} 見つかった記録、なければnull
+   */
+  static getById(id) {
+    const history = this.getAll();
+    return history.find(record => record.id === id) || null;
+  }
 }
