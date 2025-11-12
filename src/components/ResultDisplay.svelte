@@ -1,13 +1,69 @@
 <script>
   import { calculateTextDiff, getEvaluationComment, getIconType, formatTime } from '../lib/result-utils.js';
+  import { HistoryManager } from '../lib/history.js';
+  import ComparisonModal from './ComparisonModal.svelte';
 
   /**
    * 結果表示コンポーネント（複数問題対応）
    * @prop {Object} result - 総合結果オブジェクト {totalElapsedTime, averageAccuracy, totalWpm, totalCpm, totalScore, questionCount, results}
    * @prop {Object} rankEvaluation - ランク評価 {rank, title, color, bgColor, borderColor}
+   * @prop {string} mode - ゲームモード ('count' または 'time')
+   * @prop {number} modeValue - 問題数または秒数
+   * @prop {string} difficulty - 難易度
    */
   export let result = null;
   export let rankEvaluation = null;
+  export let mode = 'count';
+  export let modeValue = 5;
+  export let difficulty = 'all';
+
+  let inputMethod = 'keyboard'; // デフォルトはキーボード
+  let saveStatus = ''; // '', 'saving', 'success', 'error'
+  let saveMessage = '';
+  let isComparisonModalOpen = false;
+
+  /**
+   * 結果を保存
+   */
+  function saveResult() {
+    saveStatus = 'saving';
+    saveMessage = '保存中...';
+
+    const success = HistoryManager.save({
+      inputMethod,
+      mode,
+      modeValue,
+      difficulty,
+      result,
+      rankEvaluation
+    });
+
+    if (success) {
+      saveStatus = 'success';
+      saveMessage = '✓ 記録を保存しました';
+
+      // 3秒後にメッセージを消す
+      setTimeout(() => {
+        saveStatus = '';
+        saveMessage = '';
+      }, 3000);
+    } else {
+      saveStatus = 'error';
+      saveMessage = '✗ 保存に失敗しました';
+
+      setTimeout(() => {
+        saveStatus = '';
+        saveMessage = '';
+      }, 3000);
+    }
+  }
+
+  /**
+   * 比較モーダルを開く
+   */
+  function openComparisonModal() {
+    isComparisonModalOpen = true;
+  }
 </script>
 
 {#if result && rankEvaluation}
@@ -41,6 +97,81 @@
       <div class="text-center">
         <div class="text-sm text-gray-600">CPM</div>
         <div class="text-2xl font-bold text-gray-800">{result.totalCpm}</div>
+      </div>
+    </div>
+
+    <!-- 記録の保存 -->
+    <div class="mt-6 pt-6 border-t-2 border-gray-300">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">この記録を保存</h3>
+
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <!-- 入力方法選択 -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            入力方法を選択してください
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                bind:group={inputMethod}
+                value="keyboard"
+                class="mr-2 w-4 h-4 text-blue-600 focus:ring-blue-500"
+              />
+              <span class="text-sm text-gray-700">⌨️ キーボード</span>
+            </label>
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                bind:group={inputMethod}
+                value="voice"
+                class="mr-2 w-4 h-4 text-blue-600 focus:ring-blue-500"
+              />
+              <span class="text-sm text-gray-700">🎤 音声入力</span>
+            </label>
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                bind:group={inputMethod}
+                value="other"
+                class="mr-2 w-4 h-4 text-blue-600 focus:ring-blue-500"
+              />
+              <span class="text-sm text-gray-700">🔧 その他</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 保存ボタン -->
+        <div class="flex items-center gap-3">
+          <button
+            on:click={saveResult}
+            disabled={saveStatus === 'saving'}
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {saveStatus === 'saving' ? '保存中...' : '記録を保存'}
+          </button>
+
+          {#if saveMessage}
+            <span
+              class="text-sm font-medium {saveStatus === 'success' ? 'text-green-600' : saveStatus === 'error' ? 'text-red-600' : 'text-gray-600'}"
+            >
+              {saveMessage}
+            </span>
+          {/if}
+        </div>
+      </div>
+
+      <!-- 比較ボタン -->
+      <div class="mt-4">
+        <button
+          on:click={openComparisonModal}
+          class="w-full px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          過去の記録と比較
+        </button>
       </div>
     </div>
 
@@ -135,4 +266,15 @@
       </div>
     {/if}
   </div>
+
+  <!-- 比較モーダル -->
+  <ComparisonModal
+    bind:isOpen={isComparisonModalOpen}
+    currentResult={result}
+    currentRank={rankEvaluation}
+    {inputMethod}
+    {mode}
+    {modeValue}
+    {difficulty}
+  />
 {/if}
