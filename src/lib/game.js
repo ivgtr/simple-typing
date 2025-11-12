@@ -3,6 +3,7 @@
  */
 
 import questionsData from '../data/questions.json';
+import { getRankingEvaluation } from './ranking.js';
 
 /**
  * 問題文の一覧を取得
@@ -246,16 +247,14 @@ export function calculateTotalResult(results, totalElapsedTimeMs) {
 }
 
 /**
- * スコアのランクを判定
+ * ランク評価を取得（ranking.jsから取得）
  * @param {number} score - スコア
- * @returns {string} ランク ('S', 'A', 'B', 'C', 'D')
+ * @param {number} accuracy - 平均正確度
+ * @param {number} wpm - WPM
+ * @returns {Object} ランク評価 {rank, title, color, bgColor, borderColor}
  */
-export function getScoreRank(score) {
-  if (score >= 2000) return 'S';
-  if (score >= 1400) return 'A';
-  if (score >= 900) return 'B';
-  if (score >= 500) return 'C';
-  return 'D';
+export function getScoreRank(score, accuracy = 0, wpm = 0) {
+  return getRankingEvaluation(score, accuracy, wpm);
 }
 
 /**

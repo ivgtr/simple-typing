@@ -32,7 +32,7 @@
   $: currentQuestionIndex = gameState.currentQuestionIndex;
   $: totalQuestions = gameState.totalQuestions;
   $: totalResult = gameState.totalResult;
-  $: rank = totalResult ? getScoreRank(totalResult.totalScore) : '';
+  $: rankEvaluation = totalResult ? getScoreRank(totalResult.totalScore, totalResult.averageAccuracy, totalResult.totalWpm) : null;
   $: elapsedTime = gameState.elapsedTime;
   $: remainingTime = gameState.remainingTime;
   $: mode = gameState.mode;
@@ -204,7 +204,7 @@
       {:else if state === 'finished'}
         <!-- ゲーム終了 -->
         <!-- 結果表示 -->
-        <ResultDisplay result={totalResult} {rank} />
+        <ResultDisplay result={totalResult} rankEvaluation={rankEvaluation} />
 
         <!-- リセットボタン -->
         <button
