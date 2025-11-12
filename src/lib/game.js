@@ -25,10 +25,17 @@ export function getRandomQuestion() {
 /**
  * ランダムな問題文を複数取得
  * @param {number} count - 取得する問題数
+ * @param {string} difficulty - 難易度 ('all', 'easy', 'medium', 'hard')
  * @returns {Array} 問題文の配列
  */
-export function getRandomQuestions(count) {
-  const questions = getQuestions();
+export function getRandomQuestions(count, difficulty = 'all') {
+  let questions = getQuestions();
+
+  // 難易度でフィルタリング
+  if (difficulty !== 'all') {
+    questions = questions.filter(q => q.difficulty === difficulty);
+  }
+
   const shuffled = [...questions].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(count, questions.length));
 }
@@ -219,14 +226,15 @@ export function getScoreRank(score) {
  * ゲーム状態を管理するクラス（複数問題対応・時間ベース対応）
  */
 export class GameSession {
-  constructor(mode = 'count', value = 5) {
+  constructor(mode = 'count', value = 5, difficulty = 'all') {
     this.mode = mode; // 'count' または 'time'
     this.modeValue = value; // 問題数または秒数
+    this.difficulty = difficulty; // 難易度 ('all', 'easy', 'medium', 'hard')
     this.state = 'ready'; // 'ready', 'playing', 'finished'
 
     // 問題数ベースの場合は指定数、時間ベースの場合は多めに用意
     const questionCount = mode === 'time' ? 50 : value;
-    this.questions = getRandomQuestions(questionCount);
+    this.questions = getRandomQuestions(questionCount, difficulty);
 
     this.currentQuestionIndex = 0;
     this.questionResults = [];
@@ -337,13 +345,14 @@ export class GameSession {
    * @param {string} mode - モード ('count' または 'time')
    * @param {number} value - 問題数または秒数
    */
-  reset(mode = 'count', value = 5) {
+  reset(mode = 'count', value = 5, difficulty = 'all') {
     this.mode = mode;
     this.modeValue = value;
+    this.difficulty = difficulty;
     this.state = 'ready';
 
     const questionCount = mode === 'time' ? 50 : value;
-    this.questions = getRandomQuestions(questionCount);
+    this.questions = getRandomQuestions(questionCount, difficulty);
 
     this.currentQuestionIndex = 0;
     this.questionResults = [];
@@ -389,6 +398,7 @@ export class GameSession {
       state: this.state,
       mode: this.mode,
       modeValue: this.modeValue,
+      difficulty: this.difficulty,
       currentQuestion,
       currentQuestionIndex: this.currentQuestionIndex,
       totalQuestions: this.mode === 'count' ? this.questions.length : null,
