@@ -1,7 +1,10 @@
 <script>
+  import { onMount, createEventDispatcher } from 'svelte';
   import { calculateTextDiff, getEvaluationComment, getIconType, formatTime } from '../lib/result-utils.js';
   import { HistoryManager } from '../lib/history.js';
   import ComparisonModal from './ComparisonModal.svelte';
+
+  const dispatch = createEventDispatcher();
 
   /**
    * 結果表示コンポーネント（複数問題対応）
@@ -17,10 +20,33 @@
   export let modeValue = 5;
   export let difficulty = 'all';
 
+  const INPUT_METHOD_STORAGE_KEY = 'simple-typing-last-input-method';
+
   let inputMethod = 'keyboard'; // デフォルトはキーボード
   let saveStatus = ''; // '', 'saving', 'success', 'error'
   let saveMessage = '';
   let isComparisonModalOpen = false;
+
+  // コンポーネント初期化時に前回の入力方法を復元
+  onMount(() => {
+    try {
+      const lastMethod = localStorage.getItem(INPUT_METHOD_STORAGE_KEY);
+      if (lastMethod && ['keyboard', 'voice', 'other'].includes(lastMethod)) {
+        inputMethod = lastMethod;
+      }
+    } catch (error) {
+      console.error('Failed to load last input method:', error);
+    }
+  });
+
+  // 入力方法が変更されたら保存
+  $: if (inputMethod) {
+    try {
+      localStorage.setItem(INPUT_METHOD_STORAGE_KEY, inputMethod);
+    } catch (error) {
+      console.error('Failed to save input method:', error);
+    }
+  }
 
   /**
    * 結果を保存
@@ -42,6 +68,9 @@
       saveStatus = 'success';
       saveMessage = '✓ 記録を保存しました';
 
+      // 親コンポーネントに保存成功を通知（履歴の自動更新用）
+      dispatch('historySaved');
+
       // 3秒後にメッセージを消す
       setTimeout(() => {
         saveStatus = '';
@@ -60,8 +89,15 @@
 
   /**
    * 比較モーダルを開く
+   * 未保存の場合は自動的に保存してから開く
    */
   function openComparisonModal() {
+    // まだ保存していない場合は自動保存
+    if (saveStatus !== 'success') {
+      saveResult();
+    }
+
+    // モーダルを開く
     isComparisonModalOpen = true;
   }
 </script>
