@@ -9,9 +9,14 @@
   import StartButton from './components/StartButton.svelte';
   import TimerDisplay from './components/TimerDisplay.svelte';
   import ProgressIndicator from './components/ProgressIndicator.svelte';
+  import GameModeSelector from './components/GameModeSelector.svelte';
 
-  // ゲームセッションのインスタンスを作成（問題数: 5）
-  let game = new GameSession(5);
+  // モード選択の状態
+  let selectedMode = 'count';
+  let selectedValue = 5;
+
+  // ゲームセッションのインスタンスを作成
+  let game = new GameSession(selectedMode, selectedValue);
   let timerInterval = null;
   let currentTime = 0;
 
@@ -26,6 +31,18 @@
   $: totalResult = gameState.totalResult;
   $: rank = totalResult ? getScoreRank(totalResult.totalScore) : '';
   $: elapsedTime = gameState.elapsedTime;
+  $: remainingTime = gameState.remainingTime;
+  $: mode = gameState.mode;
+
+  /**
+   * モード選択ハンドラ
+   */
+  function handleModeSelect(event) {
+    selectedMode = event.detail.mode;
+    selectedValue = event.detail.value;
+    game.reset(selectedMode, selectedValue);
+    game = game; // 再レンダリング
+  }
 
   /**
    * ゲーム開始ハンドラ
@@ -64,7 +81,7 @@
    */
   function reset() {
     stopTimer();
-    game.reset(5);
+    game.reset(selectedMode, selectedValue);
     game = game; // 再レンダリング
     currentTime = 0;
   }
@@ -76,6 +93,13 @@
     stopTimer(); // 既存のタイマーをクリア
     timerInterval = setInterval(() => {
       currentTime = game.getElapsedTime();
+
+      // 時間ベースモードの場合、時間切れをチェック
+      if (mode === 'time' && remainingTime !== null && remainingTime <= 0) {
+        game.finishGame();
+        game = game; // 再レンダリング
+        stopTimer();
+      }
     }, 100); // 100msごとに更新
   }
 
@@ -103,9 +127,19 @@
 
       {#if state === 'ready'}
         <!-- ゲーム開始前 -->
+        <GameModeSelector
+          {selectedMode}
+          {selectedValue}
+          on:select={handleModeSelect}
+        />
         <div class="mb-6 text-center">
           <p class="text-gray-600 mb-4">
-            {totalQuestions}つの問題に挑戦します。<br />
+            {#if mode === 'count'}
+              {totalQuestions}つの問題に挑戦します。
+            {:else}
+              {selectedValue}秒間でできるだけ多くの問題に挑戦します。
+            {/if}
+            <br />
             準備ができたら、スタートボタンを押してください。
           </p>
         </div>
@@ -115,8 +149,16 @@
         <!-- ゲームプレイ中 -->
         <!-- タイマーと進捗 -->
         <div class="mb-6 flex items-center justify-between">
-          <ProgressIndicator current={currentQuestionIndex} total={totalQuestions} />
-          <TimerDisplay elapsedTime={currentTime} />
+          <ProgressIndicator
+            {mode}
+            current={currentQuestionIndex}
+            total={totalQuestions}
+            remainingTime={remainingTime}
+            totalTime={selectedValue * 1000}
+          />
+          {#if mode === 'count'}
+            <TimerDisplay elapsedTime={currentTime} />
+          {/if}
         </div>
 
         <!-- 対象テキスト -->

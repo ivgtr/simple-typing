@@ -216,18 +216,25 @@ export function getScoreRank(score) {
 }
 
 /**
- * ゲーム状態を管理するクラス（複数問題対応）
+ * ゲーム状態を管理するクラス（複数問題対応・時間ベース対応）
  */
 export class GameSession {
-  constructor(questionCount = 5) {
+  constructor(mode = 'count', value = 5) {
+    this.mode = mode; // 'count' または 'time'
+    this.modeValue = value; // 問題数または秒数
     this.state = 'ready'; // 'ready', 'playing', 'finished'
+
+    // 問題数ベースの場合は指定数、時間ベースの場合は多めに用意
+    const questionCount = mode === 'time' ? 50 : value;
     this.questions = getRandomQuestions(questionCount);
+
     this.currentQuestionIndex = 0;
     this.questionResults = [];
     this.userInput = '';
     this.gameStartTime = null;
     this.questionStartTime = null;
     this.totalResult = null;
+    this.timeLimitMs = mode === 'time' ? value * 1000 : null;
   }
 
   /**
@@ -285,11 +292,24 @@ export class GameSession {
 
     this.questionResults.push(result);
 
+    // 時間ベースの場合、制限時間をチェック
+    if (this.mode === 'time') {
+      const elapsedTime = Date.now() - this.gameStartTime;
+      if (elapsedTime >= this.timeLimitMs) {
+        // 時間切れ
+        this.finishGame();
+        return;
+      }
+    }
+
     // 次の問題へ
     this.currentQuestionIndex++;
 
-    if (this.currentQuestionIndex >= this.questions.length) {
-      // すべての問題が終了
+    // 問題数ベースの場合、全問題終了をチェック
+    if (this.mode === 'count' && this.currentQuestionIndex >= this.questions.length) {
+      this.finishGame();
+    } else if (this.currentQuestionIndex >= this.questions.length) {
+      // 時間ベースで問題が足りなくなった場合（通常起こらないが念のため）
       this.finishGame();
     } else {
       // 次の問題の準備
@@ -314,17 +334,24 @@ export class GameSession {
 
   /**
    * ゲームをリセット
-   * @param {number} questionCount - 問題数
+   * @param {string} mode - モード ('count' または 'time')
+   * @param {number} value - 問題数または秒数
    */
-  reset(questionCount = 5) {
+  reset(mode = 'count', value = 5) {
+    this.mode = mode;
+    this.modeValue = value;
     this.state = 'ready';
+
+    const questionCount = mode === 'time' ? 50 : value;
     this.questions = getRandomQuestions(questionCount);
+
     this.currentQuestionIndex = 0;
     this.questionResults = [];
     this.userInput = '';
     this.gameStartTime = null;
     this.questionStartTime = null;
     this.totalResult = null;
+    this.timeLimitMs = mode === 'time' ? value * 1000 : null;
   }
 
   /**
@@ -340,6 +367,18 @@ export class GameSession {
   }
 
   /**
+   * 残り時間を取得（時間ベースの場合のみ、ミリ秒）
+   * @returns {number|null} 残り時間
+   */
+  getRemainingTime() {
+    if (this.mode !== 'time' || this.state !== 'playing') return null;
+
+    const elapsed = this.getElapsedTime();
+    const remaining = this.timeLimitMs - elapsed;
+    return Math.max(0, remaining);
+  }
+
+  /**
    * 現在の状態を取得
    * @returns {Object} ゲームの状態
    */
@@ -348,13 +387,16 @@ export class GameSession {
 
     return {
       state: this.state,
+      mode: this.mode,
+      modeValue: this.modeValue,
       currentQuestion,
       currentQuestionIndex: this.currentQuestionIndex,
-      totalQuestions: this.questions.length,
+      totalQuestions: this.mode === 'count' ? this.questions.length : null,
       userInput: this.userInput,
       questionResults: this.questionResults,
       totalResult: this.totalResult,
-      elapsedTime: this.getElapsedTime()
+      elapsedTime: this.getElapsedTime(),
+      remainingTime: this.getRemainingTime()
     };
   }
 }
