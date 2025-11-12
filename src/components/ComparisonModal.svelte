@@ -7,7 +7,7 @@
    * @prop {Object} currentRank - 現在のランク評価
    * @prop {string} inputMethod - 入力方法
    * @prop {string} mode - ゲームモード
-   * @prop {number} modeValue - モード値
+   * @prop {number} modeValue - モード値（外部参照用、内部では未使用）
    * @prop {string} difficulty - 難易度
    * @prop {boolean} isOpen - モーダルが開いているか
    */
@@ -15,7 +15,7 @@
   export let currentRank = null;
   export let inputMethod = 'keyboard';
   export let mode = 'count';
-  export let modeValue = 5;
+  export const modeValue = 5; // 外部参照用プロパティ
   export let difficulty = 'all';
   export let isOpen = false;
 

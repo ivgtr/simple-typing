@@ -20,6 +20,9 @@ export function getQuestions() {
  */
 export function getRandomQuestion() {
   const questions = getQuestions();
+  if (questions.length === 0) {
+    throw new Error('No questions available in the question pool');
+  }
   const randomIndex = Math.floor(Math.random() * questions.length);
   return questions[randomIndex];
 }
@@ -31,11 +34,19 @@ export function getRandomQuestion() {
  * @returns {Array} 問題文の配列
  */
 export function getRandomQuestions(count, difficulty = 'all') {
+  if (count < 0 || !Number.isInteger(count)) {
+    throw new Error(`Invalid count: ${count}. Must be a positive integer`);
+  }
+
   let questions = getQuestions();
 
   // 難易度でフィルタリング
   if (difficulty !== 'all') {
     questions = questions.filter(q => q.difficulty === difficulty);
+  }
+
+  if (questions.length === 0) {
+    throw new Error(`No questions available for difficulty: ${difficulty}`);
   }
 
   const shuffled = [...questions].sort(() => Math.random() - 0.5);
@@ -81,7 +92,11 @@ export function calculateAccuracy(targetText, userInput) {
  * @returns {number} WPM
  */
 export function calculateWPM(charCount, elapsedTimeMs) {
-  if (elapsedTimeMs <= 0) return 0;
+  // 経過時間が0以下の場合は計算不可能
+  if (elapsedTimeMs <= 0) {
+    console.warn(`Invalid elapsedTimeMs: ${elapsedTimeMs}. Returning 0 WPM.`);
+    return 0;
+  }
   const minutes = elapsedTimeMs / 1000 / 60;
   const words = charCount / 5; // 日本語では5文字を1単語として換算
   return Math.round(words / minutes);
@@ -94,10 +109,39 @@ export function calculateWPM(charCount, elapsedTimeMs) {
  * @returns {number} CPM
  */
 export function calculateCPM(charCount, elapsedTimeMs) {
-  if (elapsedTimeMs <= 0) return 0;
+  // 経過時間が0以下の場合は計算不可能
+  if (elapsedTimeMs <= 0) {
+    console.warn(`Invalid elapsedTimeMs: ${elapsedTimeMs}. Returning 0 CPM.`);
+    return 0;
+  }
   const minutes = elapsedTimeMs / 1000 / 60;
   return Math.round(charCount / minutes);
 }
+
+// スコアリング定数
+const SCORING_CONSTANTS = {
+  // 正確性スコアの最大値（50%のウェイト）
+  MAX_ACCURACY_SCORE: 500,
+
+  // 速度スコアの最大値（50%のウェイト）
+  MAX_SPEED_SCORE: 500,
+
+  // 速度スコアの計算係数
+  WPM_WEIGHT: 3.5,      // WPMの重み（目標: WPM 120で約420点）
+  CPM_WEIGHT: 0.5,      // CPMの重み（目標: CPM 600で約300点）
+
+  // ボーナス係数
+  PERFECT_ACCURACY_BONUS: 1.25,  // 100%正確性ボーナス（+25%）
+  HIGH_SPEED_BONUS: 1.05,         // 高速入力ボーナス（+5%）
+  HIGH_SPEED_THRESHOLD: 150,      // 高速入力と認定されるWPM閾値
+
+  // 難易度係数
+  DIFFICULTY_MULTIPLIERS: {
+    'easy': 1.0,
+    'medium': 1.3,
+    'hard': 1.7
+  }
+};
 
 /**
  * 総合スコアを計算（改善版: ハイブリッド型）
@@ -112,12 +156,12 @@ export function calculateCPM(charCount, elapsedTimeMs) {
 export function calculateScore(accuracy, wpm, cpm, difficulty = 'medium') {
   // 正確性スコア: 2乗で評価、最大500点
   // 正確性が高いほど二次関数的に増加するが、旧システムほど極端ではない
-  const accuracyScore = Math.pow(accuracy / 100, 2) * 500;
+  const accuracyScore = Math.pow(accuracy / 100, 2) * SCORING_CONSTANTS.MAX_ACCURACY_SCORE;
 
   // 速度スコア: WPMとCPMから直接計算、最大500点
   // WPM 120, CPM 600 で約500点
   // 速度が速いほど直接的にスコアに反映される
-  const speedScore = wpm * 3.5 + cpm / 2;
+  const speedScore = wpm * SCORING_CONSTANTS.WPM_WEIGHT + cpm * SCORING_CONSTANTS.CPM_WEIGHT;
 
   // 基本スコア: 正確性50% + 速度50%
   let totalScore = accuracyScore + speedScore;
@@ -125,23 +169,18 @@ export function calculateScore(accuracy, wpm, cpm, difficulty = 'medium') {
   // 完璧入力ボーナス: 25%
   // 正確性100%の価値を保ちつつ、過度な優遇を避ける
   if (accuracy === 100) {
-    totalScore *= 1.25;
+    totalScore *= SCORING_CONSTANTS.PERFECT_ACCURACY_BONUS;
   }
 
   // 高速入力ボーナス: WPM 150以上で5%
   // 特に速い入力を追加で評価
-  if (wpm >= 150) {
-    totalScore *= 1.05;
+  if (wpm >= SCORING_CONSTANTS.HIGH_SPEED_THRESHOLD) {
+    totalScore *= SCORING_CONSTANTS.HIGH_SPEED_BONUS;
   }
 
   // 難易度係数を適用
-  const difficultyMultiplier = {
-    'easy': 1.0,
-    'medium': 1.3,
-    'hard': 1.7
-  };
-
-  totalScore *= (difficultyMultiplier[difficulty] || 1.0);
+  const multiplier = SCORING_CONSTANTS.DIFFICULTY_MULTIPLIERS[difficulty] || 1.0;
+  totalScore *= multiplier;
 
   return Math.round(totalScore);
 }
@@ -246,6 +285,12 @@ export function getScoreRank(score, accuracy = 0, wpm = 0) {
   return getRankingEvaluation(score, accuracy, wpm);
 }
 
+// ゲーム設定定数
+const GAME_CONSTANTS = {
+  // 時間ベースモードで用意する問題数（十分な問題を確保するため）
+  TIME_MODE_QUESTION_POOL_SIZE: 50
+};
+
 /**
  * ゲーム状態を管理するクラス（複数問題対応・時間ベース対応）
  */
@@ -257,7 +302,7 @@ export class GameSession {
     this.state = 'ready'; // 'ready', 'playing', 'finished'
 
     // 問題数ベースの場合は指定数、時間ベースの場合は多めに用意
-    const questionCount = mode === 'time' ? 50 : value;
+    const questionCount = mode === 'time' ? GAME_CONSTANTS.TIME_MODE_QUESTION_POOL_SIZE : value;
     this.questions = getRandomQuestions(questionCount, difficulty);
 
     this.currentQuestionIndex = 0;
@@ -383,7 +428,7 @@ export class GameSession {
     this.difficulty = difficulty;
     this.state = 'ready';
 
-    const questionCount = mode === 'time' ? 50 : value;
+    const questionCount = mode === 'time' ? GAME_CONSTANTS.TIME_MODE_QUESTION_POOL_SIZE : value;
     this.questions = getRandomQuestions(questionCount, difficulty);
 
     this.currentQuestionIndex = 0;

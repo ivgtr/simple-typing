@@ -64,7 +64,7 @@ export class HistoryManager {
 
       // 新しいレコードを作成
       const newRecord = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         timestamp: new Date().toISOString(),
         ...record
       };
@@ -77,8 +77,20 @@ export class HistoryManager {
         history.splice(MAX_HISTORY_SIZE);
       }
 
-      // LocalStorageに保存
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      // LocalStorageに保存（quota exceeded時の自動リトライ付き）
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      } catch (storageError) {
+        // QuotaExceededErrorの場合、古いレコードを削除してリトライ
+        if (storageError.name === 'QuotaExceededError' && history.length > 10) {
+          console.warn('localStorage quota exceeded. Removing old records and retrying...');
+          // 半分まで減らす
+          history.splice(Math.floor(history.length / 2));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        } else {
+          throw storageError;
+        }
+      }
 
       return true;
     } catch (error) {
