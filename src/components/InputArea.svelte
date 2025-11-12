@@ -30,6 +30,28 @@
     dispatch('input', event);
   }
 
+  function handlePaste(event) {
+    // ペースト時に改行と余分な空白を除去
+    event.preventDefault();
+
+    // クリップボードからテキストを取得
+    const pastedText = event.clipboardData.getData('text');
+
+    // 改行文字を除去し、連続した空白を1つの空白に置換
+    const cleanedText = pastedText
+      .replace(/[\r\n]+/g, '') // 改行を除去
+      .replace(/\s+/g, ' '); // 連続した空白を1つの空白に
+
+    // 入力要素の値を更新
+    if (inputElement) {
+      inputElement.value = cleanedText;
+
+      // inputイベントを手動で発火
+      const inputEvent = new Event('input', { bubbles: true });
+      inputElement.dispatchEvent(inputEvent);
+    }
+  }
+
   function handleKeyDown(event) {
     // Enterで送信（空でない場合のみ）
     if (event.key === 'Enter' && !isEmpty) {
@@ -63,6 +85,7 @@
     id="input"
     {value}
     on:input={handleInput}
+    on:paste={handlePaste}
     on:keydown={handleKeyDown}
     {disabled}
     class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-lg"
