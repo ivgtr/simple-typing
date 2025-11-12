@@ -116,7 +116,7 @@
                             {:else if item.type === 'incorrect'}
                               <span class="bg-red-100 text-red-700 font-medium rounded px-0.5">{item.char}</span>
                             {:else if item.type === 'missing'}
-                              <span class="bg-gray-200 text-gray-500 rounded px-0.5">{item.char}</span>
+                              <span class="bg-green-100 text-green-600 font-medium rounded px-0.5">{item.char}</span>
                             {:else if item.type === 'extra'}
                               <span class="bg-orange-100 text-orange-700 font-medium rounded px-0.5">{item.char}</span>
                             {/if}
