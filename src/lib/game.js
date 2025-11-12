@@ -250,14 +250,17 @@ export class GameSession {
    */
   updateInput(input) {
     if (this.state !== 'playing') return;
-
     this.userInput = input;
+  }
 
-    // 対象文字数以上入力されたら次の問題へ
-    const currentQuestion = this.questions[this.currentQuestionIndex];
-    if (input.length >= currentQuestion.text.length) {
-      this.finishQuestion();
-    }
+  /**
+   * 回答を送信して次の問題へ
+   */
+  submitAnswer() {
+    if (this.state !== 'playing') return;
+    if (this.userInput.trim().length === 0) return; // 空の入力は無視
+
+    this.finishQuestion();
   }
 
   /**

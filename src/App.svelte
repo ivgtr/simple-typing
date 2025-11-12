@@ -44,6 +44,14 @@
   function handleInput(event) {
     game.updateInput(event.detail.target.value);
     game = game; // 再レンダリング
+  }
+
+  /**
+   * 送信ハンドラ
+   */
+  function handleSubmit() {
+    game.submitAnswer();
+    game = game; // 再レンダリング
 
     // ゲームが終了したらタイマー停止
     if (game.getState().state === 'finished') {
@@ -119,6 +127,7 @@
           value={userInput}
           disabled={false}
           on:input={handleInput}
+          on:submit={handleSubmit}
         />
 
       {:else if state === 'finished'}
