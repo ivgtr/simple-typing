@@ -20,11 +20,9 @@
   export let isOpen = false;
 
   let selectedRecord = null;
-  let filterMode = 'same'; // 'same' | 'all' | 'input'
+  let filterMode = 'all'; // デフォルトを 'all' に変更して全ての記録を表示
   let sortBy = 'timestamp';
-
-  // 比較対象の記録リストを取得
-  $: comparisonRecords = getComparisonRecords();
+  let comparisonRecords = [];
 
   function getComparisonRecords() {
     if (!isOpen) return [];
@@ -124,11 +122,16 @@
     return `${sign}${change.toFixed(1)}%`;
   }
 
-  // フィルター変更時に選択をリセット
-  $: {
-    filterMode;
-    sortBy;
+  // モーダルを開いた時にリセット
+  $: if (isOpen) {
     selectedRecord = null;
+    comparisonRecords = getComparisonRecords();
+  }
+
+  // フィルター・ソート変更時に再取得
+  $: if (isOpen && (filterMode || sortBy)) {
+    selectedRecord = null;
+    comparisonRecords = getComparisonRecords();
   }
 </script>
 
