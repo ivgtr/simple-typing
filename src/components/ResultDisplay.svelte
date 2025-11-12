@@ -1,6 +1,8 @@
 <script>
+  import { onMount } from 'svelte';
   import { calculateTextDiff, getEvaluationComment, getIconType, formatTime } from '../lib/result-utils.js';
-  import { HistoryManager } from '../lib/history.js';
+  import { InputMethodDetector } from '../lib/input-detection.js';
+  import { historyStore } from '../lib/stores/history-store.js';
   import ComparisonModal from './ComparisonModal.svelte';
 
   /**
@@ -18,18 +20,32 @@
   export let difficulty = 'all';
 
   let inputMethod = 'keyboard'; // デフォルトはキーボード
-  let saveStatus = ''; // '', 'saving', 'success', 'error'
-  let saveMessage = '';
   let isComparisonModalOpen = false;
+  let isDetected = false; // 入力方法が自動検出されたかどうか
+
+  // Storeから保存状態を取得
+  $: saveStatus = $historyStore.saveStatus;
+  $: saveMessage = saveStatus === 'saving' ? '保存中...' :
+                   saveStatus === 'success' ? '✓ 記録を保存しました' :
+                   saveStatus === 'error' ? '✗ 保存に失敗しました' : '';
+
+  // コンポーネント初期化時に入力方法を自動検出
+  onMount(() => {
+    if (result) {
+      const detected = InputMethodDetector.detect(
+        result.totalInputEvents,
+        result.totalChars
+      );
+      inputMethod = detected;
+      isDetected = true;
+    }
+  });
 
   /**
    * 結果を保存
    */
   function saveResult() {
-    saveStatus = 'saving';
-    saveMessage = '保存中...';
-
-    const success = HistoryManager.save({
+    historyStore.save({
       inputMethod,
       mode,
       modeValue,
@@ -37,31 +53,19 @@
       result,
       rankEvaluation
     });
-
-    if (success) {
-      saveStatus = 'success';
-      saveMessage = '✓ 記録を保存しました';
-
-      // 3秒後にメッセージを消す
-      setTimeout(() => {
-        saveStatus = '';
-        saveMessage = '';
-      }, 3000);
-    } else {
-      saveStatus = 'error';
-      saveMessage = '✗ 保存に失敗しました';
-
-      setTimeout(() => {
-        saveStatus = '';
-        saveMessage = '';
-      }, 3000);
-    }
   }
 
   /**
    * 比較モーダルを開く
+   * 未保存の場合は自動的に保存してから開く
    */
   function openComparisonModal() {
+    // まだ保存していない場合は自動保存
+    if (saveStatus !== 'success') {
+      saveResult();
+    }
+
+    // モーダルを開く
     isComparisonModalOpen = true;
   }
 </script>
@@ -109,6 +113,11 @@
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">
             入力方法を選択してください
+            {#if isDetected}
+              <span class="text-xs text-green-600 font-normal ml-2">
+                ✓ 入力統計から自動検出しました
+              </span>
+            {/if}
           </label>
           <div class="flex flex-wrap gap-3">
             <label class="flex items-center cursor-pointer">

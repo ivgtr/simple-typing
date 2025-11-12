@@ -34,8 +34,16 @@
     // ペースト時に改行と余分な空白を除去
     event.preventDefault();
 
-    // クリップボードからテキストを取得
-    const pastedText = event.clipboardData.getData('text');
+    // クリップボードからテキストを取得（最大10000文字まで）
+    const MAX_PASTE_LENGTH = 10000;
+    const rawText = event.clipboardData.getData('text');
+    const pastedText = rawText.length > MAX_PASTE_LENGTH
+      ? rawText.slice(0, MAX_PASTE_LENGTH)
+      : rawText;
+
+    if (rawText.length > MAX_PASTE_LENGTH) {
+      console.warn(`Clipboard data truncated from ${rawText.length} to ${MAX_PASTE_LENGTH} characters`);
+    }
 
     // 改行とタブを除去し、連続した半角空白のみを統一、前後の空白を削除
     const cleanedText = pastedText

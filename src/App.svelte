@@ -79,8 +79,10 @@
    * 入力変更時のハンドラ
    */
   function handleInput(event) {
-    game.updateInput(event.detail.target.value);
-    game = game; // 再レンダリング
+    if (event?.detail?.target?.value !== undefined) {
+      game.updateInput(event.detail.target.value);
+      game = game; // 再レンダリング
+    }
   }
 
   /**

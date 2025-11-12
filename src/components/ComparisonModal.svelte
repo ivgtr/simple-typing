@@ -1,5 +1,7 @@
 <script>
   import { HistoryManager } from '../lib/history.js';
+  import { formatDate, getInputMethodLabel } from '../lib/formatters.js';
+  import { isBetter, getDifference, getPercentageChange } from '../lib/comparison-utils.js';
 
   /**
    * 比較モーダルコンポーネント
@@ -7,7 +9,7 @@
    * @prop {Object} currentRank - 現在のランク評価
    * @prop {string} inputMethod - 入力方法
    * @prop {string} mode - ゲームモード
-   * @prop {number} modeValue - モード値
+   * @prop {number} modeValue - モード値（外部参照用、内部では未使用）
    * @prop {string} difficulty - 難易度
    * @prop {boolean} isOpen - モーダルが開いているか
    */
@@ -15,7 +17,7 @@
   export let currentRank = null;
   export let inputMethod = 'keyboard';
   export let mode = 'count';
-  export let modeValue = 5;
+  export const modeValue = 5; // 外部参照用プロパティ
   export let difficulty = 'all';
   export let isOpen = false;
 
@@ -77,49 +79,6 @@
   function closeModal() {
     isOpen = false;
     selectedRecord = null;
-  }
-
-  function formatDate(isoString) {
-    const date = new Date(isoString);
-    return date.toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-
-  function getInputMethodLabel(method) {
-    const labels = {
-      keyboard: '⌨️ キーボード',
-      voice: '🎤 音声',
-      other: '🔧 その他'
-    };
-    return labels[method] || method;
-  }
-
-  // 比較用のヘルパー関数
-  function isBetter(currentValue, pastValue, higherIsBetter = true) {
-    if (higherIsBetter) {
-      return currentValue > pastValue;
-    } else {
-      return currentValue < pastValue;
-    }
-  }
-
-  function getDifference(currentValue, pastValue, isPercentage = false) {
-    const diff = currentValue - pastValue;
-    const sign = diff > 0 ? '+' : '';
-    const suffix = isPercentage ? '%' : '';
-    return `${sign}${diff.toFixed(isPercentage ? 2 : 0)}${suffix}`;
-  }
-
-  function getPercentageChange(currentValue, pastValue) {
-    if (pastValue === 0) return '+∞%';
-    const change = ((currentValue - pastValue) / pastValue) * 100;
-    const sign = change > 0 ? '+' : '';
-    return `${sign}${change.toFixed(1)}%`;
   }
 
   // モーダルを開いた時にリセット
