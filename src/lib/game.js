@@ -191,7 +191,9 @@ export function calculateTotalResult(results, totalElapsedTimeMs) {
       totalScore: 0,
       averageScore: 0,
       totalElapsedTime: 0,
-      questionCount: 0
+      questionCount: 0,
+      totalChars: 0,
+      totalInputEvents: 0
     };
   }
 
@@ -202,6 +204,9 @@ export function calculateTotalResult(results, totalElapsedTimeMs) {
 
   // 全問題の総文字数を計算
   const totalChars = results.reduce((sum, r) => sum + r.charCount, 0);
+
+  // 総input回数を計算（入力方法推測に使用）
+  const totalInputEvents = results.reduce((sum, r) => sum + (r.inputEventCount || 0), 0);
 
   // 総経過時間で WPM/CPM を計算
   const totalWpm = calculateWPM(totalChars, totalElapsedTimeMs);
@@ -224,6 +229,8 @@ export function calculateTotalResult(results, totalElapsedTimeMs) {
     averageScore,
     totalElapsedTime: parseFloat(totalElapsedTimeSec.toFixed(2)),
     questionCount: results.length,
+    totalChars, // 総文字数（入力方法推測に使用）
+    totalInputEvents, // 総input回数（入力方法推測に使用）
     results // 各問題の詳細結果も含める
   };
 }
@@ -260,6 +267,7 @@ export class GameSession {
     this.questionStartTime = null;
     this.totalResult = null;
     this.timeLimitMs = mode === 'time' ? value * 1000 : null;
+    this.questionInputEventCount = 0; // 現在の問題のinput回数
   }
 
   /**
@@ -274,6 +282,7 @@ export class GameSession {
     this.currentQuestionIndex = 0;
     this.questionResults = [];
     this.userInput = '';
+    this.questionInputEventCount = 0;
   }
 
   /**
@@ -283,6 +292,7 @@ export class GameSession {
   updateInput(input) {
     if (this.state !== 'playing') return;
     this.userInput = input;
+    this.questionInputEventCount++; // input回数をカウント
   }
 
   /**
@@ -316,6 +326,9 @@ export class GameSession {
     // 文字数も保存（総合スコア計算に使用）
     result.charCount = currentQuestion.text.length;
 
+    // input回数も保存（入力方法推測に使用）
+    result.inputEventCount = this.questionInputEventCount;
+
     this.questionResults.push(result);
 
     // 時間ベースの場合、制限時間をチェック
@@ -341,6 +354,7 @@ export class GameSession {
       // 次の問題の準備
       this.userInput = '';
       this.questionStartTime = Date.now();
+      this.questionInputEventCount = 0; // input回数をリセット
     }
   }
 
@@ -379,6 +393,7 @@ export class GameSession {
     this.questionStartTime = null;
     this.totalResult = null;
     this.timeLimitMs = mode === 'time' ? value * 1000 : null;
+    this.questionInputEventCount = 0;
   }
 
   /**

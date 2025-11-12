@@ -20,33 +20,49 @@
   export let modeValue = 5;
   export let difficulty = 'all';
 
-  const INPUT_METHOD_STORAGE_KEY = 'simple-typing-last-input-method';
-
   let inputMethod = 'keyboard'; // デフォルトはキーボード
   let saveStatus = ''; // '', 'saving', 'success', 'error'
   let saveMessage = '';
   let isComparisonModalOpen = false;
+  let isDetected = false; // 入力方法が自動検出されたかどうか
 
-  // コンポーネント初期化時に前回の入力方法を復元
-  onMount(() => {
-    try {
-      const lastMethod = localStorage.getItem(INPUT_METHOD_STORAGE_KEY);
-      if (lastMethod && ['keyboard', 'voice', 'other'].includes(lastMethod)) {
-        inputMethod = lastMethod;
-      }
-    } catch (error) {
-      console.error('Failed to load last input method:', error);
+  /**
+   * 入力統計から入力方法を推測
+   * @param {Object} result - ゲーム結果
+   * @returns {string} 推測された入力方法 ('keyboard', 'voice', 'other')
+   */
+  function detectInputMethod(result) {
+    if (!result || !result.totalInputEvents || !result.totalChars) {
+      return 'keyboard'; // データがない場合はキーボードをデフォルト
     }
-  });
 
-  // 入力方法が変更されたら保存
-  $: if (inputMethod) {
-    try {
-      localStorage.setItem(INPUT_METHOD_STORAGE_KEY, inputMethod);
-    } catch (error) {
-      console.error('Failed to save input method:', error);
+    // input回数 / 文字数の比率を計算
+    const ratio = result.totalInputEvents / result.totalChars;
+
+    // 比率に基づいて入力方法を推測
+    if (ratio >= 0.5) {
+      // 高頻度: ほぼ1文字1イベント（キーボード入力）
+      return 'keyboard';
+    } else if (ratio >= 0.15) {
+      // 中頻度: 修正を含む通常のタイピング（キーボード入力）
+      return 'keyboard';
+    } else if (ratio >= 0.05) {
+      // 低頻度: 一括入力 + 少しの修正（音声入力）
+      return 'voice';
+    } else {
+      // 極低頻度: ほとんど修正なし（コピペなど、その他）
+      return 'other';
     }
   }
+
+  // コンポーネント初期化時に入力方法を自動検出
+  onMount(() => {
+    if (result) {
+      const detected = detectInputMethod(result);
+      inputMethod = detected;
+      isDetected = true;
+    }
+  });
 
   /**
    * 結果を保存
@@ -145,6 +161,11 @@
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">
             入力方法を選択してください
+            {#if isDetected}
+              <span class="text-xs text-green-600 font-normal ml-2">
+                ✓ 入力統計から自動検出しました
+              </span>
+            {/if}
           </label>
           <div class="flex flex-wrap gap-3">
             <label class="flex items-center cursor-pointer">
