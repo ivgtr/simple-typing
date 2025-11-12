@@ -119,21 +119,23 @@ export function calculateCPM(charCount, elapsedTimeMs) {
  * @returns {number} 総合スコア
  */
 export function calculateScore(accuracy, wpm, cpm) {
-  // スコア計算式: (正確性 × 速度係数) + ボーナス
-  // 速度係数: WPMとCPMの平均を使用
-  const speedFactor = (wpm + cpm / 5) / 2;
+  // 正確性を指数的に評価（0-100を0-1に正規化）
+  const normalizedAccuracy = accuracy / 100;
 
-  // 基本スコア: 正確性 × 速度係数
-  let score = (accuracy / 100) * speedFactor * 100;
+  // 速度スコア: WPMとCPMの組み合わせ
+  const speedScore = wpm * 2 + cpm / 5;
 
-  // ボーナス: 高精度（90%以上）の場合
-  if (accuracy >= 90) {
-    score *= 1.2; // 20%ボーナス
-  }
+  // 正確性スコア: 指数関数的に評価（2.5乗で急激に増加）
+  // 高い正確性ほど大きくスコアが伸びる
+  const accuracyScore = Math.pow(normalizedAccuracy, 2.5) * 1000;
 
-  // ボーナス: 完璧な入力（100%）の場合
+  // 基本スコア = 正確性スコア × 速度係数
+  // 速度が速いほど最大20%のボーナス
+  let score = accuracyScore * (1 + Math.min(speedScore / 100, 0.2));
+
+  // 完璧な入力（100%）の場合、特別ボーナス
   if (accuracy === 100) {
-    score *= 1.5; // さらに50%ボーナス
+    score *= 1.8; // 80%ボーナス
   }
 
   return Math.round(score);
@@ -217,10 +219,10 @@ export function calculateTotalResult(results, totalElapsedTimeMs) {
  * @returns {string} ランク ('S', 'A', 'B', 'C', 'D')
  */
 export function getScoreRank(score) {
-  if (score >= 1000) return 'S';
-  if (score >= 800) return 'A';
-  if (score >= 600) return 'B';
-  if (score >= 400) return 'C';
+  if (score >= 2500) return 'S';
+  if (score >= 1800) return 'A';
+  if (score >= 1200) return 'B';
+  if (score >= 700) return 'C';
   return 'D';
 }
 
