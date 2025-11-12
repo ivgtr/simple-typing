@@ -5,10 +5,10 @@
    */
   export let elapsedTime = 0;
 
-  $: seconds = Math.floor(elapsedTime / 1000);
-  $: minutes = Math.floor(seconds / 60);
-  $: remainingSeconds = seconds % 60;
-  $: formattedTime = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  $: totalSeconds = elapsedTime / 1000;
+  $: minutes = Math.floor(totalSeconds / 60);
+  $: remainingSeconds = totalSeconds % 60;
+  $: formattedTime = `${minutes}:${remainingSeconds.toFixed(3).padStart(6, '0')}`;
 </script>
 
 <div class="flex items-center justify-center gap-2 text-lg font-semibold text-gray-700">
