@@ -4,6 +4,7 @@
 
 import questionsData from '../data/questions.json';
 import { getRankingEvaluation } from './ranking.js';
+import { calculateEditDistanceAccuracy } from './result-utils.js';
 
 /**
  * 問題文の一覧を取得
@@ -62,41 +63,15 @@ export function getQuestionById(id) {
 }
 
 /**
- * 入力の正確性を計算
+ * 入力の正確性を計算（編集距離ベース）
  * @param {string} targetText - 対象の文章
  * @param {string} userInput - ユーザーの入力
  * @returns {Object} {accuracy: number, correctChars: number, totalChars: number}
  */
 export function calculateAccuracy(targetText, userInput) {
-  // 入力方法に関わらず公平な評価のため、両方を正規化
-  // - 前後の空白を削除
-  // - 連続した半角空白を1つに統一（全角スペースは保持）
-  const normalizeText = (text) => {
-    return text
-      .trim()                    // 前後の空白を除去
-      .replace(/ {2,}/g, ' ');   // 連続した半角空白を1つに
-  };
-
-  const normalizedTarget = normalizeText(targetText);
-  const normalizedInput = normalizeText(userInput);
-
-  const totalChars = normalizedTarget.length;
-  let correctChars = 0;
-
-  // 文字単位で比較
-  for (let i = 0; i < totalChars; i++) {
-    if (normalizedInput[i] === normalizedTarget[i]) {
-      correctChars++;
-    }
-  }
-
-  const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 0;
-
-  return {
-    accuracy: parseFloat(accuracy.toFixed(2)),
-    correctChars,
-    totalChars
-  };
+  // 編集距離ベースの正確度計算を使用
+  // これにより、句読点の欠落や助詞の間違いなどが正確に評価される
+  return calculateEditDistanceAccuracy(targetText, userInput);
 }
 
 /**
