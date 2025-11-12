@@ -40,16 +40,15 @@
   function handleModeSelect(event) {
     selectedMode = event.detail.mode;
     selectedValue = event.detail.value;
-    game.reset(selectedMode, selectedValue);
-    game = game; // 再レンダリング
   }
 
   /**
    * ゲーム開始ハンドラ
    */
   function handleStart() {
+    // 新しいゲームセッションを作成
+    game = new GameSession(selectedMode, selectedValue);
     game.start();
-    game = game; // 再レンダリング
 
     // タイマー開始
     startTimer();
@@ -81,8 +80,7 @@
    */
   function reset() {
     stopTimer();
-    game.reset(selectedMode, selectedValue);
-    game = game; // 再レンダリング
+    game = new GameSession(selectedMode, selectedValue);
     currentTime = 0;
   }
 
