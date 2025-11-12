@@ -486,68 +486,51 @@
   <!-- 記録選択モーダル -->
   {#if isModalOpen}
     <div
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      class="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center p-4 z-50"
       on:click={closeModal}
       role="dialog"
       aria-modal="true"
     >
       <div
-        class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+        class="bg-white rounded-lg shadow-lg max-w-xl w-full max-h-[70vh] overflow-hidden border border-gray-200"
         on:click|stopPropagation
       >
-        <!-- ヘッダー -->
-        <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-2xl font-bold">過去の記録を選択</h2>
-            <button
-              on:click={closeModal}
-              class="text-white hover:text-gray-200 transition-colors"
-              aria-label="閉じる"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
         <!-- 記録リスト -->
-        <div class="p-6 overflow-y-auto max-h-[calc(80vh-88px)]">
+        <div class="p-4 overflow-y-auto max-h-[70vh]">
           {#if pastRecords.length === 0}
-            <div class="bg-gray-50 rounded-lg border border-gray-200 p-8 text-center">
-              <p class="text-gray-600">過去の記録がありません</p>
+            <div class="p-8 text-center">
+              <p class="text-gray-500 text-sm">過去の記録がありません</p>
             </div>
           {:else}
-            <div class="space-y-2">
+            <div class="space-y-1">
               {#each pastRecords as record (record.id)}
                 <button
                   on:click={() => selectRecord(record)}
-                  class="w-full text-left bg-white rounded-lg border-2 {record.rankEvaluation.borderColor} p-4 hover:shadow-md transition-all hover:scale-[1.02]"
+                  class="w-full text-left rounded p-3 hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
                 >
-                  <div class="flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-3">
-                      <span class="text-xl font-bold {record.rankEvaluation.color}">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                      <span class="text-lg font-bold {record.rankEvaluation.color} flex-shrink-0">
                         {record.rankEvaluation.rank}
                       </span>
-                      <div>
+                      <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
-                          <span class="text-sm font-medium text-gray-700">
+                          <span class="text-sm text-gray-700">
                             {getInputMethodLabel(record.inputMethod)}
                           </span>
-                          <span class="text-xs text-gray-500">
+                          <span class="text-xs text-gray-400">
                             {formatDate(record.timestamp)}
                           </span>
                         </div>
-                        <div class="flex items-center gap-3 text-xs text-gray-600">
-                          <span>スコア: <strong>{record.result.totalScore}</strong></span>
-                          <span>正確性: <strong>{record.result.averageAccuracy}%</strong></span>
-                          <span>WPM: <strong>{record.result.totalWpm}</strong></span>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                          <span>{record.result.totalScore}pt</span>
+                          <span>•</span>
+                          <span>{record.result.averageAccuracy}%</span>
+                          <span>•</span>
+                          <span>{record.result.totalWpm} WPM</span>
                         </div>
                       </div>
                     </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
                   </div>
                 </button>
               {/each}
