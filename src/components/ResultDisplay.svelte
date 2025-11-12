@@ -57,15 +57,8 @@
 
   /**
    * 比較モーダルを開く
-   * 未保存の場合は自動的に保存してから開く
    */
   function openComparisonModal() {
-    // まだ保存していない場合は自動保存
-    if (saveStatus !== 'success') {
-      saveResult();
-    }
-
-    // モーダルを開く
     isComparisonModalOpen = true;
   }
 </script>
