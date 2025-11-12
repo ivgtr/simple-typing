@@ -174,7 +174,7 @@
       {:else if state === 'playing'}
         <!-- ゲームプレイ中 -->
         <!-- タイマーと進捗 -->
-        <div class="mb-6 flex items-center justify-between">
+        <div class="mb-6 flex items-center gap-4">
           <ProgressIndicator
             {mode}
             current={currentQuestionIndex}
@@ -183,7 +183,9 @@
             totalTime={selectedValue * 1000}
           />
           {#if mode === 'count'}
-            <TimerDisplay elapsedTime={currentTime} />
+            <div class="flex-shrink-0">
+              <TimerDisplay elapsedTime={currentTime} />
+            </div>
           {/if}
         </div>
 
