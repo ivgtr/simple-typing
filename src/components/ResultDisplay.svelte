@@ -505,30 +505,32 @@
       </div>
 
       <!-- サマリー -->
-      {@const betterCount = [
-        isBetter(result.totalScore, selectedPastRecord.result.totalScore),
-        isBetter(result.averageAccuracy, selectedPastRecord.result.averageAccuracy),
-        isBetter(result.totalWpm, selectedPastRecord.result.totalWpm),
-        isBetter(result.totalCpm, selectedPastRecord.result.totalCpm),
-        isBetter(result.totalElapsedTime, selectedPastRecord.result.totalElapsedTime, false)
-      ].filter(Boolean).length}
+      {#if selectedPastRecord}
+        {@const betterCount = [
+          isBetter(result.totalScore, selectedPastRecord.result.totalScore),
+          isBetter(result.averageAccuracy, selectedPastRecord.result.averageAccuracy),
+          isBetter(result.totalWpm, selectedPastRecord.result.totalWpm),
+          isBetter(result.totalCpm, selectedPastRecord.result.totalCpm),
+          isBetter(result.totalElapsedTime, selectedPastRecord.result.totalElapsedTime, false)
+        ].filter(Boolean).length}
 
-      <div class="mt-6 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border-2 border-yellow-300 p-6 text-center">
-        <div class="text-lg font-bold text-gray-800 mb-2">
-          {#if betterCount >= 4}
-            🎉 大きく成長しています！
-          {:else if betterCount >= 3}
-            📈 着実に上達しています！
-          {:else if betterCount >= 2}
-            💪 いい調子です！
-          {:else}
-            🔥 次回はもっと良くなるはず！
-          {/if}
+        <div class="mt-6 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border-2 border-yellow-300 p-6 text-center">
+          <div class="text-lg font-bold text-gray-800 mb-2">
+            {#if betterCount >= 4}
+              🎉 大きく成長しています！
+            {:else if betterCount >= 3}
+              📈 着実に上達しています！
+            {:else if betterCount >= 2}
+              💪 いい調子です！
+            {:else}
+              🔥 次回はもっと良くなるはず！
+            {/if}
+          </div>
+          <div class="text-sm text-gray-600">
+            5項目中 <strong class="text-green-600">{betterCount}項目</strong> で過去の記録を上回りました
+          </div>
         </div>
-        <div class="text-sm text-gray-600">
-          5項目中 <strong class="text-green-600">{betterCount}項目</strong> で過去の記録を上回りました
-        </div>
-      </div>
+      {/if}
     </div>
   {/if}
 {/if}
