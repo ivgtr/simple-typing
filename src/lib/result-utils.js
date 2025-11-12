@@ -30,10 +30,10 @@ export function getIconType(accuracy) {
 }
 
 /**
- * テキストの差分を計算（文字単位）
+ * テキストの差分を計算（編集距離アルゴリズムを使用）
  * @param {string} targetText - 正解テキスト
  * @param {string} userInput - ユーザー入力テキスト
- * @returns {Array} 差分情報の配列 [{char, type: 'correct'|'incorrect'|'missing'}]
+ * @returns {Array} 差分情報の配列 [{char, type: 'correct'|'incorrect'|'missing'|'extra'}]
  */
 export function calculateTextDiff(targetText, userInput) {
   // 入力方法に関わらず公平な評価のため、両方を正規化
@@ -43,29 +43,76 @@ export function calculateTextDiff(targetText, userInput) {
       .replace(/ {2,}/g, ' ');
   };
 
-  const normalizedTarget = normalizeText(targetText);
-  const normalizedInput = normalizeText(userInput);
+  const target = normalizeText(targetText);
+  const input = normalizeText(userInput);
 
-  const result = [];
-  const maxLength = Math.max(normalizedTarget.length, normalizedInput.length);
+  // 編集距離のDPテーブルを作成
+  const m = target.length;
+  const n = input.length;
+  const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
 
-  for (let i = 0; i < maxLength; i++) {
-    const targetChar = normalizedTarget[i];
-    const inputChar = normalizedInput[i];
+  // 初期化
+  for (let i = 0; i <= m; i++) {
+    dp[i][0] = i;
+  }
+  for (let j = 0; j <= n; j++) {
+    dp[0][j] = j;
+  }
 
-    if (i < normalizedTarget.length && i < normalizedInput.length) {
-      // 両方に文字が存在
-      if (targetChar === inputChar) {
-        result.push({ char: inputChar, type: 'correct', position: i });
+  // DPテーブルを埋める
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (target[i - 1] === input[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1]; // マッチ
       } else {
-        result.push({ char: inputChar, type: 'incorrect', position: i, expected: targetChar });
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,     // 削除（targetの文字が欠けている）
+          dp[i][j - 1] + 1,     // 挿入（inputに余分な文字がある）
+          dp[i - 1][j - 1] + 1  // 置換
+        );
       }
-    } else if (i >= normalizedInput.length) {
-      // 入力が短い（不足している文字）
-      result.push({ char: targetChar, type: 'missing', position: i });
-    } else {
-      // 入力が長い（余分な文字）
-      result.push({ char: inputChar, type: 'extra', position: i });
+    }
+  }
+
+  // バックトラックして差分を取得
+  const result = [];
+  let i = m;
+  let j = n;
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && target[i - 1] === input[j - 1]) {
+      // マッチ
+      result.unshift({
+        char: input[j - 1],
+        type: 'correct',
+        targetChar: target[i - 1]
+      });
+      i--;
+      j--;
+    } else if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + 1) {
+      // 置換
+      result.unshift({
+        char: input[j - 1],
+        type: 'incorrect',
+        expected: target[i - 1]
+      });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i][j] === dp[i][j - 1] + 1)) {
+      // 挿入（余分な文字）
+      result.unshift({
+        char: input[j - 1],
+        type: 'extra'
+      });
+      j--;
+    } else if (i > 0) {
+      // 削除（不足している文字）
+      result.unshift({
+        char: target[i - 1],
+        type: 'missing',
+        expected: target[i - 1]
+      });
+      i--;
     }
   }
 
