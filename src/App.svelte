@@ -16,9 +16,6 @@
   // ビューモード ('game' または 'history')
   let viewMode = 'game';
 
-  // 履歴の自動更新用キー
-  let historyRefreshKey = 0;
-
   // モード選択の状態
   let selectedMode = 'count';
   let selectedValue = 5;
@@ -144,14 +141,6 @@
     }
   }
 
-  /**
-   * 履歴保存イベントハンドラー
-   * 履歴ビューを強制的に再レンダリングする
-   */
-  function handleHistorySaved() {
-    historyRefreshKey++;
-  }
-
   // コンポーネント破棄時にタイマーをクリア
   onDestroy(() => {
     stopTimer();
@@ -182,7 +171,7 @@
 
       {#if viewMode === 'history'}
         <!-- 履歴ビュー -->
-        <HistoryView key={historyRefreshKey} />
+        <HistoryView />
 
       {:else if state === 'ready'}
         <!-- ゲーム開始前 -->
@@ -247,7 +236,6 @@
           mode={selectedMode}
           modeValue={selectedValue}
           difficulty={selectedDifficulty}
-          on:historySaved={handleHistorySaved}
         />
 
         <!-- リセットボタン -->

@@ -1,6 +1,8 @@
 <script>
   import { HistoryManager } from '../lib/history.js';
   import { formatTime } from '../lib/result-utils.js';
+  import { formatDate, getInputMethodLabel } from '../lib/formatters.js';
+  import { historyStore } from '../lib/stores/history-store.js';
 
   let history = [];
   let filterInputMethod = 'all';
@@ -8,16 +10,18 @@
   let showComparison = false;
   let comparisonStats = null;
 
-  // 履歴を読み込む
-  function loadHistory() {
-    history = HistoryManager.filterByInputMethod(filterInputMethod);
-    sortHistory();
-  }
+  // ストアから履歴を取得してフィルタリング・ソート
+  $: {
+    const allRecords = $historyStore.records;
 
-  // ソート処理
-  function sortHistory() {
-    const sorted = [...history];
+    // フィルタリング
+    let filtered = allRecords;
+    if (filterInputMethod !== 'all') {
+      filtered = allRecords.filter(record => record.inputMethod === filterInputMethod);
+    }
 
+    // ソート
+    const sorted = [...filtered];
     switch (sortBy) {
       case 'score':
         sorted.sort((a, b) => b.result.totalScore - a.result.totalScore);
@@ -37,18 +41,6 @@
     history = sorted;
   }
 
-  // フィルター変更時
-  $: {
-    filterInputMethod;
-    loadHistory();
-  }
-
-  // ソート変更時
-  $: {
-    sortBy;
-    sortHistory();
-  }
-
   // 比較表示トグル
   function toggleComparison() {
     showComparison = !showComparison;
@@ -60,47 +52,16 @@
   // レコード削除
   function deleteRecord(id) {
     if (confirm('この記録を削除しますか？')) {
-      const success = HistoryManager.delete(id);
-      if (success) {
-        loadHistory();
-      }
+      historyStore.delete(id); // Storeが自動的に更新を通知
     }
   }
 
   // 全削除
   function clearAllHistory() {
     if (confirm('全ての履歴を削除しますか？この操作は取り消せません。')) {
-      const success = HistoryManager.clear();
-      if (success) {
-        loadHistory();
-      }
+      historyStore.clear(); // Storeが自動的に更新を通知
     }
   }
-
-  // 日時フォーマット
-  function formatDate(isoString) {
-    const date = new Date(isoString);
-    return date.toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-
-  // 入力方法のラベル
-  function getInputMethodLabel(method) {
-    const labels = {
-      keyboard: '⌨️ キーボード',
-      voice: '🎤 音声',
-      other: '🔧 その他'
-    };
-    return labels[method] || method;
-  }
-
-  // 初期読み込み
-  loadHistory();
 </script>
 
 <div class="space-y-6">

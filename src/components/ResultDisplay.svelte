@@ -1,10 +1,9 @@
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
   import { calculateTextDiff, getEvaluationComment, getIconType, formatTime } from '../lib/result-utils.js';
-  import { HistoryManager } from '../lib/history.js';
+  import { InputMethodDetector } from '../lib/input-detection.js';
+  import { historyStore } from '../lib/stores/history-store.js';
   import ComparisonModal from './ComparisonModal.svelte';
-
-  const dispatch = createEventDispatcher();
 
   /**
    * 結果表示コンポーネント（複数問題対応）
@@ -21,44 +20,22 @@
   export let difficulty = 'all';
 
   let inputMethod = 'keyboard'; // デフォルトはキーボード
-  let saveStatus = ''; // '', 'saving', 'success', 'error'
-  let saveMessage = '';
   let isComparisonModalOpen = false;
   let isDetected = false; // 入力方法が自動検出されたかどうか
 
-  /**
-   * 入力統計から入力方法を推測
-   * @param {Object} result - ゲーム結果
-   * @returns {string} 推測された入力方法 ('keyboard', 'voice', 'other')
-   */
-  function detectInputMethod(result) {
-    if (!result || !result.totalInputEvents || !result.totalChars) {
-      return 'keyboard'; // データがない場合はキーボードをデフォルト
-    }
-
-    // input回数 / 文字数の比率を計算
-    const ratio = result.totalInputEvents / result.totalChars;
-
-    // 比率に基づいて入力方法を推測
-    if (ratio >= 0.5) {
-      // 高頻度: ほぼ1文字1イベント（キーボード入力）
-      return 'keyboard';
-    } else if (ratio >= 0.15) {
-      // 中頻度: 修正を含む通常のタイピング（キーボード入力）
-      return 'keyboard';
-    } else if (ratio >= 0.05) {
-      // 低頻度: 一括入力 + 少しの修正（音声入力）
-      return 'voice';
-    } else {
-      // 極低頻度: ほとんど修正なし（コピペなど、その他）
-      return 'other';
-    }
-  }
+  // Storeから保存状態を取得
+  $: saveStatus = $historyStore.saveStatus;
+  $: saveMessage = saveStatus === 'saving' ? '保存中...' :
+                   saveStatus === 'success' ? '✓ 記録を保存しました' :
+                   saveStatus === 'error' ? '✗ 保存に失敗しました' : '';
 
   // コンポーネント初期化時に入力方法を自動検出
   onMount(() => {
     if (result) {
-      const detected = detectInputMethod(result);
+      const detected = InputMethodDetector.detect(
+        result.totalInputEvents,
+        result.totalChars
+      );
       inputMethod = detected;
       isDetected = true;
     }
@@ -68,10 +45,7 @@
    * 結果を保存
    */
   function saveResult() {
-    saveStatus = 'saving';
-    saveMessage = '保存中...';
-
-    const success = HistoryManager.save({
+    historyStore.save({
       inputMethod,
       mode,
       modeValue,
@@ -79,28 +53,6 @@
       result,
       rankEvaluation
     });
-
-    if (success) {
-      saveStatus = 'success';
-      saveMessage = '✓ 記録を保存しました';
-
-      // 親コンポーネントに保存成功を通知（履歴の自動更新用）
-      dispatch('historySaved');
-
-      // 3秒後にメッセージを消す
-      setTimeout(() => {
-        saveStatus = '';
-        saveMessage = '';
-      }, 3000);
-    } else {
-      saveStatus = 'error';
-      saveMessage = '✗ 保存に失敗しました';
-
-      setTimeout(() => {
-        saveStatus = '';
-        saveMessage = '';
-      }, 3000);
-    }
   }
 
   /**
