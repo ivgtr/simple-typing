@@ -26,6 +26,10 @@
   let isModalOpen = false; // モーダルが開いているか
   let selectedPastRecord = null; // 選択された過去の記録
   let pastRecords = []; // 過去の記録一覧
+  let displayLimit = 5; // 表示件数
+  let filterInputMethod = 'all'; // 入力方法フィルター
+  let filterDifficulty = 'all'; // 難易度フィルター
+  let filterMode = 'all'; // モードフィルター
 
   // Storeから保存状態を取得
   $: saveStatus = $historyStore.saveStatus;
@@ -60,10 +64,54 @@
   }
 
   /**
+   * フィルタリングされた記録を取得
+   */
+  function getFilteredRecords() {
+    let records = HistoryManager.getAll();
+
+    // フィルタリング
+    if (filterInputMethod !== 'all') {
+      records = records.filter(r => r.inputMethod === filterInputMethod);
+    }
+    if (filterDifficulty !== 'all') {
+      records = records.filter(r => r.difficulty === filterDifficulty);
+    }
+    if (filterMode !== 'all') {
+      records = records.filter(r => r.mode === filterMode);
+    }
+
+    // 日時でソート
+    return records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  }
+
+  /**
+   * 表示用の記録を取得
+   */
+  $: displayedRecords = getFilteredRecords().slice(0, displayLimit);
+  $: hasMore = getFilteredRecords().length > displayLimit;
+
+  /**
+   * フィルター変更時に表示件数をリセット
+   */
+  $: if (filterInputMethod || filterDifficulty || filterMode) {
+    displayLimit = 5;
+  }
+
+  /**
+   * もっと読み込む
+   */
+  function loadMore() {
+    displayLimit += 5;
+  }
+
+  /**
    * モーダルを開く
    */
   function openModal() {
-    pastRecords = HistoryManager.getAll().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    displayLimit = 5;
+    filterInputMethod = 'all';
+    filterDifficulty = 'all';
+    filterMode = 'all';
     isModalOpen = true;
   }
 
@@ -492,18 +540,56 @@
       aria-modal="true"
     >
       <div
-        class="bg-white rounded-lg shadow-lg max-w-xl w-full max-h-[70vh] overflow-hidden border border-gray-200"
+        class="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-hidden border border-gray-200"
         on:click|stopPropagation
       >
+        <!-- フィルター -->
+        <div class="p-4 border-b border-gray-200 bg-gray-50">
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <select
+                bind:value={filterInputMethod}
+                class="w-full text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">すべて</option>
+                <option value="keyboard">⌨️ キーボード</option>
+                <option value="voice">🎤 音声入力</option>
+                <option value="other">🔧 その他</option>
+              </select>
+            </div>
+            <div>
+              <select
+                bind:value={filterDifficulty}
+                class="w-full text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">すべての難易度</option>
+                <option value="easy">簡単</option>
+                <option value="medium">普通</option>
+                <option value="hard">難しい</option>
+              </select>
+            </div>
+            <div>
+              <select
+                bind:value={filterMode}
+                class="w-full text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">すべてのモード</option>
+                <option value="count">問題数モード</option>
+                <option value="time">時間制限モード</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <!-- 記録リスト -->
-        <div class="p-4 overflow-y-auto max-h-[70vh]">
-          {#if pastRecords.length === 0}
+        <div class="p-4 overflow-y-auto max-h-[calc(80vh-120px)]">
+          {#if displayedRecords.length === 0}
             <div class="p-8 text-center">
-              <p class="text-gray-500 text-sm">過去の記録がありません</p>
+              <p class="text-gray-500 text-sm">記録がありません</p>
             </div>
           {:else}
             <div class="space-y-1">
-              {#each pastRecords as record (record.id)}
+              {#each displayedRecords as record (record.id)}
                 <button
                   on:click={() => selectRecord(record)}
                   class="w-full text-left rounded p-3 hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
@@ -535,6 +621,18 @@
                 </button>
               {/each}
             </div>
+
+            <!-- もっと読み込むボタン -->
+            {#if hasMore}
+              <div class="mt-3 text-center">
+                <button
+                  on:click={loadMore}
+                  class="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  もっと読み込む
+                </button>
+              </div>
+            {/if}
           {/if}
         </div>
       </div>
