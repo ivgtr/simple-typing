@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
 
   /**
    * 入力エリアコンポーネント
@@ -12,6 +12,16 @@
   export let disabled = false;
 
   const dispatch = createEventDispatcher();
+  let textareaElement;
+
+  /**
+   * 入力エリアにフォーカスを当てる
+   */
+  export function focus() {
+    if (textareaElement) {
+      textareaElement.focus();
+    }
+  }
 
   function handleInput(event) {
     dispatch('input', event);
@@ -28,6 +38,11 @@
   function handleSubmit() {
     dispatch('submit');
   }
+
+  onMount(() => {
+    // コンポーネントマウント時にフォーカス
+    focus();
+  });
 </script>
 
 <div class="mb-6">
@@ -38,6 +53,7 @@
     <span class="text-xs text-gray-500">Ctrl+Enter で送信</span>
   </div>
   <textarea
+    bind:this={textareaElement}
     id="input"
     {value}
     on:input={handleInput}
