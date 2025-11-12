@@ -145,7 +145,7 @@ export function calculateScore(accuracy, wpm, cpm) {
  * @param {string} userInput - ユーザーの入力
  * @param {number} startTime - 開始時刻（タイムスタンプ）
  * @param {number} endTime - 終了時刻（タイムスタンプ）
- * @returns {Object} ゲーム結果 {accuracy, wpm, cpm, score, elapsedTime}
+ * @returns {Object} ゲーム結果 {targetText, userInput, accuracy, wpm, cpm, score, elapsedTime}
  */
 export function calculateResult(targetText, userInput, startTime, endTime) {
   const elapsedTimeMs = endTime - startTime;
@@ -157,6 +157,8 @@ export function calculateResult(targetText, userInput, startTime, endTime) {
   const score = calculateScore(accuracy, wpm, cpm);
 
   return {
+    targetText,
+    userInput,
     accuracy,
     wpm,
     cpm,

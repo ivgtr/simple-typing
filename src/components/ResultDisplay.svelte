@@ -45,14 +45,31 @@
     {#if result.results && result.results.length > 0}
       <div class="mt-6 pt-6 border-t border-blue-200">
         <h3 class="text-sm font-semibold text-gray-700 mb-3">各問題の結果</h3>
-        <div class="space-y-2">
+        <div class="space-y-4">
           {#each result.results as questionResult, index}
-            <div class="flex items-center justify-between text-sm bg-white p-3 rounded">
-              <span class="font-medium text-gray-700">問題 {index + 1}</span>
-              <div class="flex gap-4">
-                <span class="text-gray-600">正確性: <strong>{questionResult.accuracy}%</strong></span>
-                <span class="text-gray-600">時間: <strong>{questionResult.elapsedTime}秒</strong></span>
-                <span class="text-gray-600">スコア: <strong>{questionResult.score}</strong></span>
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <div class="flex items-center justify-between mb-3">
+                <span class="font-semibold text-gray-800">問題 {index + 1}</span>
+                <div class="flex gap-3 items-center">
+                  {#if questionResult.accuracy === 100}
+                    <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">正解</span>
+                  {:else}
+                    <span class="px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">誤り</span>
+                  {/if}
+                  <span class="text-sm text-gray-600">正確性: <strong>{questionResult.accuracy}%</strong></span>
+                  <span class="text-sm text-gray-600">時間: <strong>{questionResult.elapsedTime}秒</strong></span>
+                  <span class="text-sm text-gray-600">スコア: <strong>{questionResult.score}</strong></span>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div>
+                  <div class="text-xs font-semibold text-gray-500 mb-1">問題文:</div>
+                  <div class="text-sm text-gray-800 bg-gray-50 p-2 rounded">{questionResult.targetText}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-semibold text-gray-500 mb-1">あなたの入力:</div>
+                  <div class="text-sm text-gray-800 bg-gray-50 p-2 rounded {questionResult.accuracy === 100 ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500'}">{questionResult.userInput || '(入力なし)'}</div>
+                </div>
               </div>
             </div>
           {/each}
