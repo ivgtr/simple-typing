@@ -67,12 +67,24 @@ export function getQuestionById(id) {
  * @returns {Object} {accuracy: number, correctChars: number, totalChars: number}
  */
 export function calculateAccuracy(targetText, userInput) {
-  const totalChars = targetText.length;
+  // 入力方法に関わらず公平な評価のため、両方を正規化
+  // - 前後の空白を削除
+  // - 連続した半角空白を1つに統一（全角スペースは保持）
+  const normalizeText = (text) => {
+    return text
+      .trim()                    // 前後の空白を除去
+      .replace(/ {2,}/g, ' ');   // 連続した半角空白を1つに
+  };
+
+  const normalizedTarget = normalizeText(targetText);
+  const normalizedInput = normalizeText(userInput);
+
+  const totalChars = normalizedTarget.length;
   let correctChars = 0;
 
   // 文字単位で比較
   for (let i = 0; i < totalChars; i++) {
-    if (userInput[i] === targetText[i]) {
+    if (normalizedInput[i] === normalizedTarget[i]) {
       correctChars++;
     }
   }
