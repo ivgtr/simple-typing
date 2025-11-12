@@ -11,6 +11,10 @@
   import ProgressIndicator from './components/ProgressIndicator.svelte';
   import GameModeSelector from './components/GameModeSelector.svelte';
   import DifficultySelector from './components/DifficultySelector.svelte';
+  import HistoryView from './components/HistoryView.svelte';
+
+  // ビューモード ('game' または 'history')
+  let viewMode = 'game';
 
   // モード選択の状態
   let selectedMode = 'count';
@@ -147,7 +151,27 @@
       <!-- ヘッダー -->
       <Header />
 
-      {#if state === 'ready'}
+      <!-- タブナビゲーション -->
+      <div class="mb-6 flex gap-2 border-b border-gray-200">
+        <button
+          on:click={() => viewMode = 'game'}
+          class="px-4 py-2 font-semibold transition-colors border-b-2 {viewMode === 'game' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent hover:text-gray-800'}"
+        >
+          🎮 ゲーム
+        </button>
+        <button
+          on:click={() => viewMode = 'history'}
+          class="px-4 py-2 font-semibold transition-colors border-b-2 {viewMode === 'history' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent hover:text-gray-800'}"
+        >
+          📊 履歴
+        </button>
+      </div>
+
+      {#if viewMode === 'history'}
+        <!-- 履歴ビュー -->
+        <HistoryView />
+
+      {:else if state === 'ready'}
         <!-- ゲーム開始前 -->
         <GameModeSelector
           {selectedMode}
@@ -204,7 +228,13 @@
       {:else if state === 'finished'}
         <!-- ゲーム終了 -->
         <!-- 結果表示 -->
-        <ResultDisplay result={totalResult} rankEvaluation={rankEvaluation} />
+        <ResultDisplay
+          result={totalResult}
+          rankEvaluation={rankEvaluation}
+          mode={selectedMode}
+          modeValue={selectedValue}
+          difficulty={selectedDifficulty}
+        />
 
         <!-- リセットボタン -->
         <button
@@ -215,8 +245,10 @@
         </button>
       {/if}
 
-      <!-- 説明 -->
-      <InstructionsCard />
+      {#if viewMode === 'game'}
+        <!-- 説明 -->
+        <InstructionsCard />
+      {/if}
     </div>
   </div>
 </main>
