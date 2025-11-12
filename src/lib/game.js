@@ -100,31 +100,38 @@ export function calculateCPM(charCount, elapsedTimeMs) {
 }
 
 /**
- * 総合スコアを計算
+ * 総合スコアを計算（改善版: ハイブリッド型）
+ * 正確性と速度を公平に評価するバランス型スコアリング
+ *
  * @param {number} accuracy - 正確性 (0-100)
- * @param {number} wpm - WPM
- * @param {number} cpm - CPM
+ * @param {number} wpm - WPM (Words Per Minute)
+ * @param {number} cpm - CPM (Characters Per Minute)
  * @param {string} difficulty - 難易度 ('easy', 'medium', 'hard')
  * @returns {number} 総合スコア
  */
 export function calculateScore(accuracy, wpm, cpm, difficulty = 'medium') {
-  // 正確性を指数的に評価（0-100を0-1に正規化）
-  const normalizedAccuracy = accuracy / 100;
+  // 正確性スコア: 2乗で評価、最大500点
+  // 正確性が高いほど二次関数的に増加するが、旧システムほど極端ではない
+  const accuracyScore = Math.pow(accuracy / 100, 2) * 500;
 
-  // 速度スコア: WPMとCPMの組み合わせ
-  const speedScore = wpm * 2 + cpm / 5;
+  // 速度スコア: WPMとCPMから直接計算、最大500点
+  // WPM 120, CPM 600 で約500点
+  // 速度が速いほど直接的にスコアに反映される
+  const speedScore = wpm * 3.5 + cpm / 2;
 
-  // 正確性スコア: 指数関数的に評価（2.5乗で急激に増加）
-  // 高い正確性ほど大きくスコアが伸びる
-  const accuracyScore = Math.pow(normalizedAccuracy, 2.5) * 1000;
+  // 基本スコア: 正確性50% + 速度50%
+  let totalScore = accuracyScore + speedScore;
 
-  // 基本スコア = 正確性スコア × 速度係数
-  // 速度が速いほど最大20%のボーナス
-  let score = accuracyScore * (1 + Math.min(speedScore / 100, 0.2));
-
-  // 完璧な入力（100%）の場合、特別ボーナス
+  // 完璧入力ボーナス: 25%
+  // 正確性100%の価値を保ちつつ、過度な優遇を避ける
   if (accuracy === 100) {
-    score *= 1.8; // 80%ボーナス
+    totalScore *= 1.25;
+  }
+
+  // 高速入力ボーナス: WPM 150以上で5%
+  // 特に速い入力を追加で評価
+  if (wpm >= 150) {
+    totalScore *= 1.05;
   }
 
   // 難易度係数を適用
@@ -134,9 +141,9 @@ export function calculateScore(accuracy, wpm, cpm, difficulty = 'medium') {
     'hard': 1.7
   };
 
-  score *= (difficultyMultiplier[difficulty] || 1.0);
+  totalScore *= (difficultyMultiplier[difficulty] || 1.0);
 
-  return Math.round(score);
+  return Math.round(totalScore);
 }
 
 /**

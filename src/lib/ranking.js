@@ -4,21 +4,23 @@
 
 /**
  * ランク区分の定義（D～SSS）
+ * 新しいスコアリングシステムに合わせて調整
+ * 正確性と速度の両方を公平に評価する範囲に設定
  */
 export const RANK_TIERS = [
-  { rank: 'SSS', minScore: 3000, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
-  { rank: 'SS', minScore: 2500, color: 'text-pink-600', bgColor: 'bg-pink-50', borderColor: 'border-pink-300' },
-  { rank: 'S', minScore: 2000, color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-300' },
-  { rank: 'A+', minScore: 1700, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-300' },
-  { rank: 'A', minScore: 1400, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-300' },
-  { rank: 'A-', minScore: 1200, color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-300' },
-  { rank: 'B+', minScore: 1000, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' },
-  { rank: 'B', minScore: 800, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' },
-  { rank: 'B-', minScore: 600, color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' },
-  { rank: 'C+', minScore: 450, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-300' },
-  { rank: 'C', minScore: 300, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-300' },
-  { rank: 'C-', minScore: 150, color: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300' },
-  { rank: 'D', minScore: 0, color: 'text-gray-600', bgColor: 'bg-gray-50', borderColor: 'border-gray-300' }
+  { rank: 'SSS', minScore: 2000, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' }, // 超高速＋高精度
+  { rank: 'SS', minScore: 1700, color: 'text-pink-600', bgColor: 'bg-pink-50', borderColor: 'border-pink-300' }, // 高速＋完璧または超高速＋中精度
+  { rank: 'S', minScore: 1400, color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-300' }, // 高速＋高精度
+  { rank: 'A+', minScore: 1200, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-300' }, // 中速＋高精度または高速＋中精度
+  { rank: 'A', minScore: 1000, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-300' }, // 低速＋完璧または中速＋中精度
+  { rank: 'A-', minScore: 850, color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-300' }, // 安定した入力
+  { rank: 'B+', minScore: 700, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' }, // 中級者レベル
+  { rank: 'B', minScore: 550, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' }, // 標準レベル
+  { rank: 'B-', minScore: 400, color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' }, // やや初級
+  { rank: 'C+', minScore: 300, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-300' }, // 初級レベル
+  { rank: 'C', minScore: 200, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-300' }, // 入門レベル
+  { rank: 'C-', minScore: 100, color: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300' }, // 初心者
+  { rank: 'D', minScore: 0, color: 'text-gray-600', bgColor: 'bg-gray-50', borderColor: 'border-gray-300' } // 練習中
 ];
 
 /**
