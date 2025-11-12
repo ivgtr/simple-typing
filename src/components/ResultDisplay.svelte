@@ -486,7 +486,7 @@
   <!-- 記録選択モーダル -->
   {#if isModalOpen}
     <div
-      class="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center p-4 z-50"
+      class="fixed inset-0 bg-black/20 flex items-center justify-center p-4 z-50"
       on:click={closeModal}
       role="dialog"
       aria-modal="true"
