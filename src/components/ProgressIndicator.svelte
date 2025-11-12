@@ -13,6 +13,8 @@
   export let remainingTime = 0;
   export let totalTime = 0;
 
+  let progress = 0;
+
   $: if (mode === 'count') {
     progress = total > 0 ? ((current + 1) / total) * 100 : 0;
   } else {

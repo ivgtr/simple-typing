@@ -21,6 +21,7 @@
   let game = new GameSession(selectedMode, selectedValue, selectedDifficulty);
   let timerInterval = null;
   let currentTime = 0;
+  let inputAreaComponent;
 
   // リアクティブな状態
   $: gameState = game.getState();
@@ -61,6 +62,13 @@
 
     // タイマー開始
     startTimer();
+
+    // 入力欄にフォーカス
+    setTimeout(() => {
+      if (inputAreaComponent) {
+        inputAreaComponent.focus();
+      }
+    }, 0);
   }
 
   /**
@@ -81,6 +89,13 @@
     // ゲームが終了したらタイマー停止
     if (game.getState().state === 'finished') {
       stopTimer();
+    } else {
+      // 次の問題に移った場合、入力欄にフォーカス
+      setTimeout(() => {
+        if (inputAreaComponent) {
+          inputAreaComponent.focus();
+        }
+      }, 0);
     }
   }
 
@@ -177,6 +192,7 @@
 
         <!-- 入力エリア -->
         <InputArea
+          bind:this={inputAreaComponent}
           value={userInput}
           disabled={false}
           on:input={handleInput}
