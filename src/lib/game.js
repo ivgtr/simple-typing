@@ -23,6 +23,17 @@ export function getRandomQuestion() {
 }
 
 /**
+ * ランダムな問題文を複数取得
+ * @param {number} count - 取得する問題数
+ * @returns {Array} 問題文の配列
+ */
+export function getRandomQuestions(count) {
+  const questions = getQuestions();
+  const shuffled = [...questions].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, questions.length));
+}
+
+/**
  * 難易度を指定して問題文を取得
  * @param {string} difficulty - 難易度 ('easy', 'medium', 'hard')
  * @returns {Array} 指定した難易度の問題文の配列
@@ -148,6 +159,50 @@ export function calculateResult(targetText, userInput, startTime, endTime) {
 }
 
 /**
+ * 複数の結果から総合結果を計算
+ * @param {Array} results - 各問題の結果の配列
+ * @param {number} totalElapsedTimeMs - 総経過時間（ミリ秒）
+ * @returns {Object} 総合結果
+ */
+export function calculateTotalResult(results, totalElapsedTimeMs) {
+  if (results.length === 0) {
+    return {
+      averageAccuracy: 0,
+      totalWpm: 0,
+      totalCpm: 0,
+      totalScore: 0,
+      totalElapsedTime: 0,
+      questionCount: 0
+    };
+  }
+
+  const totalElapsedTimeSec = totalElapsedTimeMs / 1000;
+
+  // 平均正確性を計算
+  const averageAccuracy = results.reduce((sum, r) => sum + r.accuracy, 0) / results.length;
+
+  // 全問題の総文字数を計算
+  const totalChars = results.reduce((sum, r) => sum + r.charCount, 0);
+
+  // 総経過時間で WPM/CPM を計算
+  const totalWpm = calculateWPM(totalChars, totalElapsedTimeMs);
+  const totalCpm = calculateCPM(totalChars, totalElapsedTimeMs);
+
+  // 総合スコアを計算
+  const totalScore = calculateScore(averageAccuracy, totalWpm, totalCpm);
+
+  return {
+    averageAccuracy: parseFloat(averageAccuracy.toFixed(2)),
+    totalWpm,
+    totalCpm,
+    totalScore,
+    totalElapsedTime: parseFloat(totalElapsedTimeSec.toFixed(2)),
+    questionCount: results.length,
+    results // 各問題の詳細結果も含める
+  };
+}
+
+/**
  * スコアのランクを判定
  * @param {number} score - スコア
  * @returns {string} ランク ('S', 'A', 'B', 'C', 'D')
@@ -161,27 +216,32 @@ export function getScoreRank(score) {
 }
 
 /**
- * ゲーム状態を管理するクラス
+ * ゲーム状態を管理するクラス（複数問題対応）
  */
 export class GameSession {
-  constructor(question = null) {
-    this.question = question || getRandomQuestion();
+  constructor(questionCount = 5) {
+    this.state = 'ready'; // 'ready', 'playing', 'finished'
+    this.questions = getRandomQuestions(questionCount);
+    this.currentQuestionIndex = 0;
+    this.questionResults = [];
     this.userInput = '';
-    this.startTime = null;
-    this.endTime = null;
-    this.isStarted = false;
-    this.isFinished = false;
-    this.result = null;
+    this.gameStartTime = null;
+    this.questionStartTime = null;
+    this.totalResult = null;
   }
 
   /**
    * ゲームを開始
    */
   start() {
-    if (!this.isStarted) {
-      this.isStarted = true;
-      this.startTime = Date.now();
-    }
+    if (this.state !== 'ready') return;
+
+    this.state = 'playing';
+    this.gameStartTime = Date.now();
+    this.questionStartTime = Date.now();
+    this.currentQuestionIndex = 0;
+    this.questionResults = [];
+    this.userInput = '';
   }
 
   /**
@@ -189,47 +249,91 @@ export class GameSession {
    * @param {string} input - ユーザーの入力
    */
   updateInput(input) {
+    if (this.state !== 'playing') return;
+
     this.userInput = input;
 
-    // 初回入力時に自動的に開始
-    if (!this.isStarted && input.length > 0) {
-      this.start();
+    // 対象文字数以上入力されたら次の問題へ
+    const currentQuestion = this.questions[this.currentQuestionIndex];
+    if (input.length >= currentQuestion.text.length) {
+      this.finishQuestion();
     }
+  }
 
-    // 対象文字数以上入力されたら終了
-    if (input.length >= this.question.text.length) {
-      this.finish();
+  /**
+   * 現在の問題を終了
+   */
+  finishQuestion() {
+    if (this.state !== 'playing') return;
+
+    const currentQuestion = this.questions[this.currentQuestionIndex];
+    const questionEndTime = Date.now();
+
+    // 現在の問題の結果を計算
+    const result = calculateResult(
+      currentQuestion.text,
+      this.userInput,
+      this.questionStartTime,
+      questionEndTime
+    );
+
+    // 文字数も保存（総合スコア計算に使用）
+    result.charCount = currentQuestion.text.length;
+
+    this.questionResults.push(result);
+
+    // 次の問題へ
+    this.currentQuestionIndex++;
+
+    if (this.currentQuestionIndex >= this.questions.length) {
+      // すべての問題が終了
+      this.finishGame();
+    } else {
+      // 次の問題の準備
+      this.userInput = '';
+      this.questionStartTime = Date.now();
     }
   }
 
   /**
    * ゲームを終了
    */
-  finish() {
-    if (this.isFinished || !this.isStarted) return;
+  finishGame() {
+    if (this.state !== 'playing') return;
 
-    this.isFinished = true;
-    this.endTime = Date.now();
-    this.result = calculateResult(
-      this.question.text,
-      this.userInput,
-      this.startTime,
-      this.endTime
-    );
+    this.state = 'finished';
+    const gameEndTime = Date.now();
+    const totalElapsedTimeMs = gameEndTime - this.gameStartTime;
+
+    // 総合結果を計算
+    this.totalResult = calculateTotalResult(this.questionResults, totalElapsedTimeMs);
   }
 
   /**
    * ゲームをリセット
-   * @param {Object} newQuestion - 新しい問題（省略時はランダム）
+   * @param {number} questionCount - 問題数
    */
-  reset(newQuestion = null) {
-    this.question = newQuestion || getRandomQuestion();
+  reset(questionCount = 5) {
+    this.state = 'ready';
+    this.questions = getRandomQuestions(questionCount);
+    this.currentQuestionIndex = 0;
+    this.questionResults = [];
     this.userInput = '';
-    this.startTime = null;
-    this.endTime = null;
-    this.isStarted = false;
-    this.isFinished = false;
-    this.result = null;
+    this.gameStartTime = null;
+    this.questionStartTime = null;
+    this.totalResult = null;
+  }
+
+  /**
+   * 現在の経過時間を取得（ミリ秒）
+   * @returns {number} 経過時間
+   */
+  getElapsedTime() {
+    if (this.state === 'ready') return 0;
+    if (this.state === 'finished') {
+      return this.totalResult ? this.totalResult.totalElapsedTime * 1000 : 0;
+    }
+    return Date.now() - this.gameStartTime;
   }
 
   /**
@@ -237,12 +341,17 @@ export class GameSession {
    * @returns {Object} ゲームの状態
    */
   getState() {
+    const currentQuestion = this.questions[this.currentQuestionIndex] || null;
+
     return {
-      question: this.question,
+      state: this.state,
+      currentQuestion,
+      currentQuestionIndex: this.currentQuestionIndex,
+      totalQuestions: this.questions.length,
       userInput: this.userInput,
-      isStarted: this.isStarted,
-      isFinished: this.isFinished,
-      result: this.result
+      questionResults: this.questionResults,
+      totalResult: this.totalResult,
+      elapsedTime: this.getElapsedTime()
     };
   }
 }
