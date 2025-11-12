@@ -37,10 +37,11 @@
     // クリップボードからテキストを取得
     const pastedText = event.clipboardData.getData('text');
 
-    // 改行文字を除去し、連続した空白を1つの空白に置換
+    // 改行とタブを除去し、連続した半角空白のみを統一、前後の空白を削除
     const cleanedText = pastedText
-      .replace(/[\r\n]+/g, '') // 改行を除去
-      .replace(/\s+/g, ' '); // 連続した空白を1つの空白に
+      .replace(/[\r\n\t]+/g, '') // 改行とタブを除去
+      .replace(/ {2,}/g, ' ')     // 連続した半角空白のみを1つに（全角は保持）
+      .trim();                    // 前後の空白を除去
 
     // 入力要素の値を更新
     if (inputElement) {
