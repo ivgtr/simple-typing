@@ -10,13 +10,15 @@
   import TimerDisplay from './components/TimerDisplay.svelte';
   import ProgressIndicator from './components/ProgressIndicator.svelte';
   import GameModeSelector from './components/GameModeSelector.svelte';
+  import DifficultySelector from './components/DifficultySelector.svelte';
 
   // モード選択の状態
   let selectedMode = 'count';
   let selectedValue = 5;
+  let selectedDifficulty = 'all';
 
   // ゲームセッションのインスタンスを作成
-  let game = new GameSession(selectedMode, selectedValue);
+  let game = new GameSession(selectedMode, selectedValue, selectedDifficulty);
   let timerInterval = null;
   let currentTime = 0;
 
@@ -40,16 +42,22 @@
   function handleModeSelect(event) {
     selectedMode = event.detail.mode;
     selectedValue = event.detail.value;
-    game.reset(selectedMode, selectedValue);
-    game = game; // 再レンダリング
+  }
+
+  /**
+   * 難易度選択ハンドラ
+   */
+  function handleDifficultySelect(event) {
+    selectedDifficulty = event.detail.difficulty;
   }
 
   /**
    * ゲーム開始ハンドラ
    */
   function handleStart() {
+    // 新しいゲームセッションを作成
+    game = new GameSession(selectedMode, selectedValue, selectedDifficulty);
     game.start();
-    game = game; // 再レンダリング
 
     // タイマー開始
     startTimer();
@@ -81,8 +89,7 @@
    */
   function reset() {
     stopTimer();
-    game.reset(selectedMode, selectedValue);
-    game = game; // 再レンダリング
+    game = new GameSession(selectedMode, selectedValue, selectedDifficulty);
     currentTime = 0;
   }
 
@@ -131,6 +138,10 @@
           {selectedMode}
           {selectedValue}
           on:select={handleModeSelect}
+        />
+        <DifficultySelector
+          {selectedDifficulty}
+          on:select={handleDifficultySelect}
         />
         <div class="mb-6 text-center">
           <p class="text-gray-600 mb-4">
