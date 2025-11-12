@@ -46,8 +46,26 @@
         break;
     }
 
-    // ソート
-    return sortRecords(records);
+    // 現在の未保存の結果を一時的な記録として先頭に追加
+    if (currentResult && currentRank) {
+      const tempRecord = {
+        id: 'temp-current',
+        timestamp: new Date().toISOString(),
+        inputMethod,
+        mode,
+        modeValue,
+        difficulty,
+        result: currentResult,
+        rankEvaluation: currentRank,
+        isTemp: true // 未保存の一時記録であることを示すフラグ
+      };
+      records = [tempRecord, ...records];
+    }
+
+    // ソート（未保存の記録は常に先頭に配置されるため、sortは保存済み記録のみに適用）
+    const sortedRecords = sortRecords(records.filter(r => !r.isTemp));
+    const tempRecords = records.filter(r => r.isTemp);
+    return [...tempRecords, ...sortedRecords];
   }
 
   function sortRecords(records) {
@@ -125,7 +143,8 @@
       {#if !selectedRecord}
         <!-- 記録選択画面 -->
         <div class="p-6 overflow-y-auto max-h-[calc(90vh-88px)]">
-          <p class="text-gray-700 mb-4">比較したい過去の記録を選択してください</p>
+          <p class="text-gray-700 mb-2">今回の結果と比較したい過去の記録を選択してください</p>
+          <p class="text-sm text-gray-500 mb-4">💡 記録を保存しなくても、過去の記録と比較できます</p>
 
           <!-- フィルターとソート -->
           <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 mb-4">
@@ -174,7 +193,8 @@
               {#each comparisonRecords as record (record.id)}
                 <button
                   on:click={() => selectRecord(record)}
-                  class="w-full text-left bg-white rounded-lg border-2 {record.rankEvaluation.borderColor} p-4 hover:shadow-md transition-all hover:scale-[1.02]"
+                  class="w-full text-left {record.isTemp ? 'bg-gradient-to-r from-yellow-50 to-amber-50 cursor-default' : 'bg-white cursor-pointer hover:shadow-md hover:scale-[1.02]'} rounded-lg border-2 {record.rankEvaluation.borderColor} p-4 transition-all {record.isTemp ? 'ring-2 ring-yellow-300' : ''}"
+                  disabled={record.isTemp}
                 >
                   <div class="flex items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
@@ -186,12 +206,19 @@
                       <!-- 情報 -->
                       <div>
                         <div class="flex items-center gap-2 mb-1">
+                          {#if record.isTemp}
+                            <span class="text-xs font-bold text-yellow-700 bg-yellow-200 px-2 py-0.5 rounded">
+                              📝 今回の結果（未保存）
+                            </span>
+                          {/if}
                           <span class="text-sm font-medium text-gray-700">
                             {getInputMethodLabel(record.inputMethod)}
                           </span>
-                          <span class="text-xs text-gray-500">
-                            {formatDate(record.timestamp)}
-                          </span>
+                          {#if !record.isTemp}
+                            <span class="text-xs text-gray-500">
+                              {formatDate(record.timestamp)}
+                            </span>
+                          {/if}
                         </div>
                         <div class="flex items-center gap-3 text-xs text-gray-600">
                           <span>スコア: <strong>{record.result.totalScore}</strong></span>
@@ -202,9 +229,11 @@
                     </div>
 
                     <!-- 選択アイコン -->
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
+                    {#if !record.isTemp}
+                      <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    {/if}
                   </div>
                 </button>
               {/each}
