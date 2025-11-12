@@ -23,7 +23,7 @@
 
   let inputMethod = 'keyboard'; // デフォルトはキーボード
   let isDetected = false; // 入力方法が自動検出されたかどうか
-  let showComparison = false; // 比較モードかどうか
+  let isModalOpen = false; // モーダルが開いているか
   let selectedPastRecord = null; // 選択された過去の記録
   let pastRecords = []; // 過去の記録一覧
 
@@ -60,20 +60,18 @@
   }
 
   /**
-   * 比較モードを開く
+   * モーダルを開く
    */
-  function openComparison() {
+  function openModal() {
     pastRecords = HistoryManager.getAll().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    showComparison = true;
-    selectedPastRecord = null;
+    isModalOpen = true;
   }
 
   /**
-   * 比較モードを閉じる
+   * モーダルを閉じる
    */
-  function closeComparison() {
-    showComparison = false;
-    selectedPastRecord = null;
+  function closeModal() {
+    isModalOpen = false;
   }
 
   /**
@@ -81,11 +79,19 @@
    */
   function selectRecord(record) {
     selectedPastRecord = record;
+    isModalOpen = false;
+  }
+
+  /**
+   * 比較を閉じる
+   */
+  function closeComparison() {
+    selectedPastRecord = null;
   }
 </script>
 
 {#if result && rankEvaluation}
-  {#if !showComparison}
+  {#if !selectedPastRecord}
     <!-- 通常の結果表示 -->
     <div class="mb-6 p-6 {rankEvaluation.bgColor} rounded-lg border-2 {rankEvaluation.borderColor}">
       <div class="mb-6 text-center">
@@ -189,7 +195,7 @@
         <!-- 比較ボタン -->
         <div class="mt-4">
           <button
-            on:click={openComparison}
+            on:click={openModal}
             class="w-full px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -292,8 +298,8 @@
       {/if}
     </div>
 
-  {:else if !selectedPastRecord}
-    <!-- 過去の記録リスト -->
+  {:else}
+    <!-- VS比較画面 -->
     <div class="mb-6">
       <button
         on:click={closeComparison}
@@ -302,64 +308,7 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
-        結果表示に戻る
-      </button>
-
-      <h3 class="text-lg font-bold text-gray-800 mb-4">比較する過去の記録を選択</h3>
-
-      {#if pastRecords.length === 0}
-        <div class="bg-gray-50 rounded-lg border border-gray-200 p-8 text-center">
-          <p class="text-gray-600">過去の記録がありません</p>
-        </div>
-      {:else}
-        <div class="space-y-2">
-          {#each pastRecords as record (record.id)}
-            <button
-              on:click={() => selectRecord(record)}
-              class="w-full text-left bg-white rounded-lg border-2 {record.rankEvaluation.borderColor} p-4 hover:shadow-md transition-all hover:scale-[1.02]"
-            >
-              <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                  <span class="text-xl font-bold {record.rankEvaluation.color}">
-                    {record.rankEvaluation.rank}
-                  </span>
-                  <div>
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="text-sm font-medium text-gray-700">
-                        {getInputMethodLabel(record.inputMethod)}
-                      </span>
-                      <span class="text-xs text-gray-500">
-                        {formatDate(record.timestamp)}
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-3 text-xs text-gray-600">
-                      <span>スコア: <strong>{record.result.totalScore}</strong></span>
-                      <span>正確性: <strong>{record.result.averageAccuracy}%</strong></span>
-                      <span>WPM: <strong>{record.result.totalWpm}</strong></span>
-                    </div>
-                  </div>
-                </div>
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-              </div>
-            </button>
-          {/each}
-        </div>
-      {/if}
-    </div>
-
-  {:else}
-    <!-- VS比較画面 -->
-    <div class="mb-6">
-      <button
-        on:click={() => selectedPastRecord = null}
-        class="mb-4 text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm font-medium"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-        記録リストに戻る
+        比較を閉じる
       </button>
 
       <h3 class="text-lg font-bold text-gray-800 mb-4">比較結果</h3>
@@ -531,6 +480,81 @@
           </div>
         </div>
       {/if}
+    </div>
+  {/if}
+
+  <!-- 記録選択モーダル -->
+  {#if isModalOpen}
+    <div
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      on:click={closeModal}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+        on:click|stopPropagation
+      >
+        <!-- ヘッダー -->
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-bold">過去の記録を選択</h2>
+            <button
+              on:click={closeModal}
+              class="text-white hover:text-gray-200 transition-colors"
+              aria-label="閉じる"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 記録リスト -->
+        <div class="p-6 overflow-y-auto max-h-[calc(80vh-88px)]">
+          {#if pastRecords.length === 0}
+            <div class="bg-gray-50 rounded-lg border border-gray-200 p-8 text-center">
+              <p class="text-gray-600">過去の記録がありません</p>
+            </div>
+          {:else}
+            <div class="space-y-2">
+              {#each pastRecords as record (record.id)}
+                <button
+                  on:click={() => selectRecord(record)}
+                  class="w-full text-left bg-white rounded-lg border-2 {record.rankEvaluation.borderColor} p-4 hover:shadow-md transition-all hover:scale-[1.02]"
+                >
+                  <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                      <span class="text-xl font-bold {record.rankEvaluation.color}">
+                        {record.rankEvaluation.rank}
+                      </span>
+                      <div>
+                        <div class="flex items-center gap-2 mb-1">
+                          <span class="text-sm font-medium text-gray-700">
+                            {getInputMethodLabel(record.inputMethod)}
+                          </span>
+                          <span class="text-xs text-gray-500">
+                            {formatDate(record.timestamp)}
+                          </span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-gray-600">
+                          <span>スコア: <strong>{record.result.totalScore}</strong></span>
+                          <span>正確性: <strong>{record.result.averageAccuracy}%</strong></span>
+                          <span>WPM: <strong>{record.result.totalWpm}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </div>
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
     </div>
   {/if}
 {/if}
