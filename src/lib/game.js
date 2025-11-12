@@ -116,25 +116,37 @@ export function calculateCPM(charCount, elapsedTimeMs) {
  * @param {number} accuracy - 正確性 (0-100)
  * @param {number} wpm - WPM
  * @param {number} cpm - CPM
+ * @param {string} difficulty - 難易度 ('easy', 'medium', 'hard')
  * @returns {number} 総合スコア
  */
-export function calculateScore(accuracy, wpm, cpm) {
-  // スコア計算式: (正確性 × 速度係数) + ボーナス
-  // 速度係数: WPMとCPMの平均を使用
-  const speedFactor = (wpm + cpm / 5) / 2;
+export function calculateScore(accuracy, wpm, cpm, difficulty = 'medium') {
+  // 正確性を指数的に評価（0-100を0-1に正規化）
+  const normalizedAccuracy = accuracy / 100;
 
-  // 基本スコア: 正確性 × 速度係数
-  let score = (accuracy / 100) * speedFactor * 100;
+  // 速度スコア: WPMとCPMの組み合わせ
+  const speedScore = wpm * 2 + cpm / 5;
 
-  // ボーナス: 高精度（90%以上）の場合
-  if (accuracy >= 90) {
-    score *= 1.2; // 20%ボーナス
-  }
+  // 正確性スコア: 指数関数的に評価（2.5乗で急激に増加）
+  // 高い正確性ほど大きくスコアが伸びる
+  const accuracyScore = Math.pow(normalizedAccuracy, 2.5) * 1000;
 
-  // ボーナス: 完璧な入力（100%）の場合
+  // 基本スコア = 正確性スコア × 速度係数
+  // 速度が速いほど最大20%のボーナス
+  let score = accuracyScore * (1 + Math.min(speedScore / 100, 0.2));
+
+  // 完璧な入力（100%）の場合、特別ボーナス
   if (accuracy === 100) {
-    score *= 1.5; // さらに50%ボーナス
+    score *= 1.8; // 80%ボーナス
   }
+
+  // 難易度係数を適用
+  const difficultyMultiplier = {
+    'easy': 1.0,
+    'medium': 1.3,
+    'hard': 1.7
+  };
+
+  score *= (difficultyMultiplier[difficulty] || 1.0);
 
   return Math.round(score);
 }
@@ -145,20 +157,22 @@ export function calculateScore(accuracy, wpm, cpm) {
  * @param {string} userInput - ユーザーの入力
  * @param {number} startTime - 開始時刻（タイムスタンプ）
  * @param {number} endTime - 終了時刻（タイムスタンプ）
- * @returns {Object} ゲーム結果 {targetText, userInput, accuracy, wpm, cpm, score, elapsedTime}
+ * @param {string} difficulty - 難易度 ('easy', 'medium', 'hard')
+ * @returns {Object} ゲーム結果 {targetText, userInput, difficulty, accuracy, wpm, cpm, score, elapsedTime}
  */
-export function calculateResult(targetText, userInput, startTime, endTime) {
+export function calculateResult(targetText, userInput, startTime, endTime, difficulty = 'medium') {
   const elapsedTimeMs = endTime - startTime;
   const elapsedTimeSec = elapsedTimeMs / 1000;
 
   const { accuracy } = calculateAccuracy(targetText, userInput);
   const wpm = calculateWPM(userInput.length, elapsedTimeMs);
   const cpm = calculateCPM(userInput.length, elapsedTimeMs);
-  const score = calculateScore(accuracy, wpm, cpm);
+  const score = calculateScore(accuracy, wpm, cpm, difficulty);
 
   return {
     targetText,
     userInput,
+    difficulty,
     accuracy,
     wpm,
     cpm,
@@ -180,6 +194,7 @@ export function calculateTotalResult(results, totalElapsedTimeMs) {
       totalWpm: 0,
       totalCpm: 0,
       totalScore: 0,
+      averageScore: 0,
       totalElapsedTime: 0,
       questionCount: 0
     };
@@ -197,14 +212,21 @@ export function calculateTotalResult(results, totalElapsedTimeMs) {
   const totalWpm = calculateWPM(totalChars, totalElapsedTimeMs);
   const totalCpm = calculateCPM(totalChars, totalElapsedTimeMs);
 
-  // 総合スコアを計算
-  const totalScore = calculateScore(averageAccuracy, totalWpm, totalCpm);
+  // 各問題のスコアの合計を計算
+  const sumScore = results.reduce((sum, r) => sum + r.score, 0);
+
+  // 問題あたりの平均スコアを計算（問題数に依存しない公平な評価）
+  const averageScore = Math.round(sumScore / results.length);
+
+  // 総合スコアは平均スコアを使用（ランク判定用）
+  const totalScore = averageScore;
 
   return {
     averageAccuracy: parseFloat(averageAccuracy.toFixed(2)),
     totalWpm,
     totalCpm,
     totalScore,
+    averageScore,
     totalElapsedTime: parseFloat(totalElapsedTimeSec.toFixed(2)),
     questionCount: results.length,
     results // 各問題の詳細結果も含める
@@ -217,10 +239,10 @@ export function calculateTotalResult(results, totalElapsedTimeMs) {
  * @returns {string} ランク ('S', 'A', 'B', 'C', 'D')
  */
 export function getScoreRank(score) {
-  if (score >= 1000) return 'S';
-  if (score >= 800) return 'A';
-  if (score >= 600) return 'B';
-  if (score >= 400) return 'C';
+  if (score >= 2000) return 'S';
+  if (score >= 1400) return 'A';
+  if (score >= 900) return 'B';
+  if (score >= 500) return 'C';
   return 'D';
 }
 
@@ -294,7 +316,8 @@ export class GameSession {
       currentQuestion.text,
       this.userInput,
       this.questionStartTime,
-      questionEndTime
+      questionEndTime,
+      currentQuestion.difficulty || 'medium'
     );
 
     // 文字数も保存（総合スコア計算に使用）
